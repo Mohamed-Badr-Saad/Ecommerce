@@ -61,7 +61,7 @@ export function CheckoutForm({ subtotal, defaults = {} }: { subtotal: number; de
         </dl>
         {state.error ? <p role="alert" className="mt-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{state.error}</p> : null}
         <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}Place COD order</Button>
-        <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-3.5" /> Stock is reserved when your order is placed.</p>
+        <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-3.5" /> Stock is committed when your COD order is placed.</p>
       </aside>
     </form>
   );

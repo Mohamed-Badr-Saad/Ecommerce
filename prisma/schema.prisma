@@ -305,6 +305,9 @@ model Order {
   id              String          @id @default(cuid())
   orderNumber     String          @unique
   checkoutToken   String          @unique
+  inventoryReservedAt DateTime?
+  reservationExpiresAt DateTime?
+  inventoryReleasedAt DateTime?
   userId          String?
   user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   status          OrderStatus     @default(PENDING)
@@ -337,6 +340,7 @@ model Order {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([paymentStatus])
+  @@index([paymentMethod, paymentStatus, reservationExpiresAt])
   @@map("orders")
 }
 

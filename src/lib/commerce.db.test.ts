@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createCodOrderFromCart } from "./orders";
+import { createCodOrderFromCart, createPaymobOrderFromCart } from "./orders";
 import { prisma } from "./prisma";
+import { PAYMENT_RESERVATION_MS, releaseExpiredPaymentReservations } from "./reservations";
 
 const checkout = { firstName: "Mariam", lastName: "Hassan", email: "checkout@talie.test", phone: "01012345678", street: "12 Nile Street", city: "Dokki", governorate: "Giza" as const };
 let productId = "";
@@ -52,5 +53,25 @@ describe("transactional COD checkout", () => {
     await expect(createCodOrderFromCart(cart.id, checkout)).rejects.toThrow(/available|sold out/);
     expect(await prisma.order.count({ where: { customerEmail: checkout.email } })).toBe(1);
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(current.stockQuantity);
+  });
+
+  it("releases an unpaid Paymob reservation after one hour", async () => {
+    const before = await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } });
+    const cart = await cartWithQuantity(1);
+    const reservedAt = new Date("2026-08-21T20:00:00.000Z");
+    const result = await createPaymobOrderFromCart(cart.id, checkout, undefined, reservedAt);
+    const pending = await prisma.order.findUniqueOrThrow({ where: { orderNumber: result.orderNumber } });
+    expect(pending.status).toBe("PENDING");
+    expect(pending.paymentStatus).toBe("PENDING");
+    expect(pending.reservationExpiresAt?.getTime()).toBe(reservedAt.getTime() + PAYMENT_RESERVATION_MS);
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(before.stockQuantity - 1);
+
+    expect(await releaseExpiredPaymentReservations(new Date(reservedAt.getTime() + PAYMENT_RESERVATION_MS + 1))).toBe(1);
+    const released = await prisma.order.findUniqueOrThrow({ where: { id: pending.id }, include: { payments: true } });
+    expect(released.status).toBe("CANCELLED");
+    expect(released.paymentStatus).toBe("FAILED");
+    expect(released.inventoryReleasedAt).not.toBeNull();
+    expect(released.payments[0].status).toBe("FAILED");
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(before.stockQuantity);
   });
 });

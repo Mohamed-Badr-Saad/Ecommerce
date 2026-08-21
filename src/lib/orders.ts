@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { calculateShipping, type CheckoutInput } from "./commerce";
 import { getMutableCartId } from "./cart";
 import { prisma } from "./prisma";
+import { PAYMENT_RESERVATION_MS } from "./reservations";
 import { getCurrentSession } from "./session";
 
 export class CheckoutError extends Error {}
@@ -13,8 +14,17 @@ export async function createCodOrder(input: CheckoutInput) {
 }
 
 export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string) {
+  return createOrderFromCart(cartId, input, "COD", userId);
+}
+
+export async function createPaymobOrderFromCart(cartId: string, input: CheckoutInput, userId?: string, now = new Date()) {
+  return createOrderFromCart(cartId, input, "PAYMOB", userId, now);
+}
+
+async function createOrderFromCart(cartId: string, input: CheckoutInput, paymentMethod: "COD" | "PAYMOB", userId?: string, now = new Date()) {
   const checkoutToken = randomUUID();
   const orderNumber = `TL-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${randomUUID().slice(0, 6).toUpperCase()}`;
+  const reservationExpiresAt = paymentMethod === "PAYMOB" ? new Date(now.getTime() + PAYMENT_RESERVATION_MS) : null;
 
   const order = await prisma.$transaction(async (tx) => {
     const cart = await tx.cart.findUnique({
@@ -47,9 +57,11 @@ export async function createCodOrderFromCart(cartId: string, input: CheckoutInpu
         orderNumber,
         checkoutToken,
         userId,
-        status: "CONFIRMED",
-        paymentStatus: "UNPAID",
-        paymentMethod: "COD",
+        status: paymentMethod === "COD" ? "CONFIRMED" : "PENDING",
+        paymentStatus: paymentMethod === "COD" ? "UNPAID" : "PENDING",
+        paymentMethod,
+        inventoryReservedAt: now,
+        reservationExpiresAt,
         subtotal,
         shippingCost,
         total,
@@ -73,14 +85,14 @@ export async function createCodOrderFromCart(cartId: string, input: CheckoutInpu
           price,
           total: lineTotal,
         })) },
-        payments: { create: { provider: "COD", status: "PENDING", amount: total, currency: "EGP", idempotencyKey: `cod:${checkoutToken}` } },
+        payments: { create: { provider: paymentMethod, status: "PENDING", amount: total, currency: "EGP", idempotencyKey: `${paymentMethod.toLowerCase()}:${checkoutToken}` } },
       },
     });
     await tx.cartItem.deleteMany({ where: { cartId } });
     return saved;
   }, { isolationLevel: "Serializable" });
 
-  return { orderNumber: order.orderNumber, checkoutToken: order.checkoutToken };
+  return { orderNumber: order.orderNumber, checkoutToken: order.checkoutToken, reservationExpiresAt: order.reservationExpiresAt };
 }
 
 export async function getOrderForConfirmation(orderNumber: string, token?: string) {

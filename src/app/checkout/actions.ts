@@ -15,6 +15,8 @@ export async function placeCodOrderAction(_state: CheckoutState, formData: FormD
   try {
     result = await createCodOrder(parsed.data);
   } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : undefined;
+    console.error("[checkout] COD order failed", { name: error instanceof Error ? error.name : "UnknownError", code });
     return { error: error instanceof CheckoutError ? error.message : "We could not place your order. Please try again." };
   }
   redirect(`/order-confirmation/${result.orderNumber}?token=${result.checkoutToken}`);

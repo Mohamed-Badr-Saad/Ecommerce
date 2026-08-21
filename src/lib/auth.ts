@@ -5,11 +5,15 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "./prisma";
 import { serverEnv } from "./server-env";
 
+const vercelOrigins = [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
+  .filter((value): value is string => Boolean(value))
+  .map((value) => `https://${value}`);
+
 export const auth = betterAuth({
   appName: "Talié",
   baseURL: serverEnv.BETTER_AUTH_URL,
   secret: serverEnv.BETTER_AUTH_SECRET,
-  trustedOrigins: [serverEnv.NEXT_PUBLIC_APP_URL],
+  trustedOrigins: Array.from(new Set([serverEnv.NEXT_PUBLIC_APP_URL, ...vercelOrigins])),
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,

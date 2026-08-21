@@ -7,6 +7,8 @@
     "deepmerge-ts": "8.0.2"
   },
   "scripts": {
+    "postinstall": "prisma generate",
+    "predev": "prisma generate",
     "dev": "next dev",
     "prebuild": "prisma generate",
     "build": "next build",
