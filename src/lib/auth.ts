@@ -8,12 +8,17 @@ import { serverEnv } from "./server-env";
 const vercelOrigins = [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
   .filter((value): value is string => Boolean(value))
   .map((value) => `https://${value}`);
+const developmentOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean)
+  .flatMap((hostname) => [`https://${hostname}`, `http://${hostname}`]);
 
 export const auth = betterAuth({
   appName: "Talié",
   baseURL: serverEnv.BETTER_AUTH_URL,
   secret: serverEnv.BETTER_AUTH_SECRET,
-  trustedOrigins: Array.from(new Set([serverEnv.NEXT_PUBLIC_APP_URL, ...vercelOrigins])),
+  trustedOrigins: Array.from(new Set([serverEnv.NEXT_PUBLIC_APP_URL, ...developmentOrigins, ...vercelOrigins])),
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,

@@ -49,6 +49,7 @@ try {
   await page.getByLabel("Governorate").click();
   await page.getByRole("option", { name: "Giza" }).click();
   await page.getByText("EGP 85").last().waitFor();
+  await page.getByLabel("Cash on delivery").check();
   await page.screenshot({ path: path.join(artifacts, "checkout-desktop.png"), fullPage: true });
   await page.setViewportSize({ width: 500, height: 900 });
   await page.screenshot({ path: path.join(artifacts, "checkout-mobile.png"), fullPage: true });

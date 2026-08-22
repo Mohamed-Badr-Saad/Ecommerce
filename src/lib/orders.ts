@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import type { Prisma } from "../generated/prisma/client";
 import { calculateShipping, type CheckoutInput } from "./commerce";
 import { getMutableCartId } from "./cart";
 import { prisma } from "./prisma";
@@ -11,6 +12,11 @@ export class CheckoutError extends Error {}
 export async function createCodOrder(input: CheckoutInput) {
   const [cartId, session] = await Promise.all([getMutableCartId(), getCurrentSession()]);
   return createCodOrderFromCart(cartId, input, session?.user.id);
+}
+
+export async function createPaymobOrder(input: CheckoutInput) {
+  const [cartId, session] = await Promise.all([getMutableCartId(), getCurrentSession()]);
+  return createPaymobOrderFromCart(cartId, input, session?.user.id);
 }
 
 export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string) {
@@ -92,7 +98,21 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
     return saved;
   }, { isolationLevel: "Serializable" });
 
-  return { orderNumber: order.orderNumber, checkoutToken: order.checkoutToken, reservationExpiresAt: order.reservationExpiresAt };
+  return { orderId: order.id, cartId, orderNumber: order.orderNumber, checkoutToken: order.checkoutToken, reservationExpiresAt: order.reservationExpiresAt };
+}
+
+export async function getPaymobOrderForIntention(orderId: string) {
+  return prisma.order.findFirstOrThrow({
+    where: { id: orderId, paymentMethod: "PAYMOB", paymentStatus: "PENDING" },
+    include: { items: true },
+  });
+}
+
+export async function recordPaymobIntention(orderId: string, intentionOrderId: string, rawResponse: Prisma.InputJsonValue) {
+  return prisma.payment.updateMany({
+    where: { orderId, provider: "PAYMOB", status: "PENDING", providerIntentionId: null },
+    data: { providerIntentionId: intentionOrderId, rawResponse },
+  });
 }
 
 export async function getOrderForConfirmation(orderNumber: string, token?: string) {

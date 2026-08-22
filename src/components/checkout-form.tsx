@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { LoaderCircle, LockKeyhole } from "lucide-react";
+import { Banknote, CreditCard, LoaderCircle, LockKeyhole } from "lucide-react";
 
-import { placeCodOrderAction } from "@/app/checkout/actions";
+import { placeOrderAction } from "@/app/checkout/actions";
 import { EGYPTIAN_GOVERNORATES, calculateShipping } from "@/lib/commerce";
 import { formatEgp } from "@/lib/storefront";
 import { Button } from "./ui/button";
@@ -15,8 +15,9 @@ import { Textarea } from "./ui/textarea";
 type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "street" | "apartment" | "city" | "governorate" | "postalCode", string>>;
 
 export function CheckoutForm({ subtotal, defaults = {} }: { subtotal: number; defaults?: Defaults }) {
-  const [state, action, pending] = useActionState(placeCodOrderAction, {});
+  const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
+  const [paymentMethod, setPaymentMethod] = useState<"PAYMOB" | "COD">("PAYMOB");
   const field = (name: keyof Defaults, label: string, props: React.ComponentProps<typeof Input> = {}) => (
     <div className="space-y-2">
       <Label htmlFor={`checkout-${name}`}>{label}</Label>
@@ -53,15 +54,27 @@ export function CheckoutForm({ subtotal, defaults = {} }: { subtotal: number; de
       </section>
 
       <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32">
-        <h2 className="font-heading text-3xl">Cash on delivery</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Pay in cash when your Talié order arrives.</p>
+        <h2 className="font-heading text-3xl">Payment</h2>
+        <fieldset className="mt-5 space-y-3">
+          <legend className="sr-only">Choose a payment method</legend>
+          <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "PAYMOB" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
+            <input type="radio" name="paymentMethod" value="PAYMOB" checked={paymentMethod === "PAYMOB"} onChange={() => setPaymentMethod("PAYMOB")} className="mt-1 accent-primary" />
+            <CreditCard className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <span><span className="block font-medium">Pay online</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Secure Paymob test checkout. Cards and available methods appear on Paymob.</span></span>
+          </label>
+          <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "COD" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
+            <input type="radio" name="paymentMethod" value="COD" checked={paymentMethod === "COD"} onChange={() => setPaymentMethod("COD")} className="mt-1 accent-primary" />
+            <Banknote className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <span><span className="block font-medium">Cash on delivery</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pay in cash when your Talié order arrives.</span></span>
+          </label>
+        </fieldset>
         <dl className="mt-7 space-y-4 border-y border-border py-5 text-sm">
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatEgp(subtotal)}</dd></div>
           <div className="flex justify-between"><dt>Delivery</dt><dd>{estimatedShipping === null ? "Calculated from address" : estimatedShipping === 0 ? "Complimentary" : formatEgp(estimatedShipping)}</dd></div>
         </dl>
         {state.error ? <p role="alert" className="mt-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{state.error}</p> : null}
-        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}Place COD order</Button>
-        <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="size-3.5" /> Stock is committed when your COD order is placed.</p>
+        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}{paymentMethod === "PAYMOB" ? "Continue to secure payment" : "Place COD order"}</Button>
+        <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground"><LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> {paymentMethod === "PAYMOB" ? "Stock is reserved for one hour while you complete payment." : "Stock is committed when your COD order is placed."}</p>
       </aside>
     </form>
   );

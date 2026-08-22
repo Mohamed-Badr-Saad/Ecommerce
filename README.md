@@ -4,7 +4,7 @@ Talié is a modest-fashion e-commerce application built in independently testabl
 
 ## Current scope
 
-Chunks 1–5 provide the branded storefront, PostgreSQL catalog, customer accounts, persistent carts, Egyptian delivery pricing, and transactional Cash on Delivery checkout. Chunk 6 adds Paymob; its one-hour pending-payment inventory reservation foundation is already in place.
+Chunks 1–6 provide the branded storefront, PostgreSQL catalog, customer accounts, persistent carts, Egyptian delivery pricing, transactional Cash on Delivery checkout, and Paymob hosted test checkout with signed callbacks and one-hour stock reservations.
 
 See [the development plan](docs/development-plan.md) for the complete sequence and acceptance boundaries.
 
@@ -56,7 +56,12 @@ For short-lived local Paymob webhook testing, a public HTTPS tunnel can be used 
 cloudflared tunnel --url http://localhost:3000
 ```
 
-Keep both the Next.js server and tunnel running. The generated hostname changes when the quick tunnel restarts, so update Paymob callback URLs each time.
+Keep both the Next.js server and tunnel running. Put the hostname (without `https://`) in `DEV_ALLOWED_ORIGINS` and the full HTTPS origin in `PAYMOB_CALLBACK_BASE_URL`, then restart `npm run dev`. Configure Paymob with:
+
+- Processed callback: `https://YOUR-TUNNEL/api/payments/paymob/webhook`
+- Transaction response callback: `https://YOUR-TUNNEL/payment/return`
+
+The app also sends these URLs per Intention, overriding the integration defaults for supported payment methods. The generated hostname changes when the quick tunnel restarts, so update `.env`, restart Next.js, and update Paymob each time.
 
 Pending Paymob inventory is reserved for 60 minutes. Expired stock is released lazily on storefront/cart traffic, and `/api/cron/release-reservations` is available for a scheduler when `CRON_SECRET` is configured.
 

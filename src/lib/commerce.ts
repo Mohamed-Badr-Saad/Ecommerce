@@ -23,6 +23,7 @@ export function calculateShipping(subtotal: number, governorate: string) {
 export const cartQuantitySchema = z.coerce.number().int().min(1).max(CART_MAX_QUANTITY);
 
 export const checkoutSchema = z.object({
+  paymentMethod: z.enum(["COD", "PAYMOB"]).default("COD"),
   firstName: z.string().trim().min(2).max(60),
   lastName: z.string().trim().min(2).max(60),
   email: z.email().trim().toLowerCase(),
@@ -35,4 +36,4 @@ export const checkoutSchema = z.object({
   notes: z.string().trim().max(500).optional(),
 });
 
-export type CheckoutInput = z.infer<typeof checkoutSchema>;
+export type CheckoutInput = z.input<typeof checkoutSchema>;

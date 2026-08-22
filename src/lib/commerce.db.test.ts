@@ -1,6 +1,9 @@
+import { createHmac } from "node:crypto";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createCodOrderFromCart, createPaymobOrderFromCart } from "./orders";
+import { createCodOrderFromCart, createPaymobOrderFromCart, recordPaymobIntention } from "./orders";
+import { processPaymobWebhook } from "./paymob-webhook";
 import { prisma } from "./prisma";
 import { PAYMENT_RESERVATION_MS, releaseExpiredPaymentReservations } from "./reservations";
 
@@ -73,5 +76,34 @@ describe("transactional COD checkout", () => {
     expect(released.inventoryReleasedAt).not.toBeNull();
     expect(released.payments[0].status).toBe("FAILED");
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(before.stockQuantity);
+  });
+
+  it("accepts an authentic Paymob callback once and confirms the reserved order", async () => {
+    const cart = await cartWithQuantity(1);
+    const result = await createPaymobOrderFromCart(cart.id, checkout);
+    const order = await prisma.order.findUniqueOrThrow({ where: { id: result.orderId } });
+    const providerOrderId = 88001122;
+    const transactionId = 99001122;
+    await recordPaymobIntention(order.id, String(providerOrderId), { status: "intended" });
+    const object = {
+      amount_cents: Math.round(Number(order.total) * 100), created_at: "2026-08-22T12:00:00.000000", currency: "EGP",
+      error_occured: false, has_parent_transaction: false, id: transactionId,
+      integration_id: Number(process.env.PAYMOB_INTEGRATION_ID), is_3d_secure: true, is_auth: false, is_capture: false,
+      is_refunded: false, is_standalone_payment: true, is_voided: false,
+      order: { id: providerOrderId, merchant_order_id: order.orderNumber }, owner: 1, pending: false,
+      source_data: { pan: "1111", sub_type: "MasterCard", type: "card" }, success: true,
+    };
+    const concatenated = [object.amount_cents, object.created_at, object.currency, object.error_occured, object.has_parent_transaction,
+      object.id, object.integration_id, object.is_3d_secure, object.is_auth, object.is_capture, object.is_refunded,
+      object.is_standalone_payment, object.is_voided, object.order.id, object.owner, object.pending,
+      object.source_data.pan, object.source_data.sub_type, object.source_data.type, object.success].map(String).join("");
+    const hmac = createHmac("sha512", process.env.PAYMOB_HMAC_SECRET!).update(concatenated).digest("hex");
+
+    expect((await processPaymobWebhook({ obj: object }, hmac)).outcome).toBe("paid");
+    expect((await processPaymobWebhook({ obj: object }, hmac)).outcome).toBe("paid");
+    const paid = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { payments: true } });
+    expect(paid.status).toBe("CONFIRMED");
+    expect(paid.paymentStatus).toBe("PAID");
+    expect(paid.payments[0].providerTransactionId).toBe(String(transactionId));
   });
 });
