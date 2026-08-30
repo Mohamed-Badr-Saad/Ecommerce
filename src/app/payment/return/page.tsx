@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { getOrderForConfirmation } from "@/lib/orders";
+import { reconcilePaymobOrderPayment } from "@/lib/paymob-reconciliation";
 
 type Props = { searchParams: Promise<{ orderNumber?: string; token?: string }> };
 
@@ -10,7 +11,15 @@ export const metadata = { title: "Payment status" };
 
 export default async function PaymentReturnPage({ searchParams }: Props) {
   const { orderNumber, token } = await searchParams;
-  const order = orderNumber ? await getOrderForConfirmation(orderNumber, token) : null;
+  let order = orderNumber ? await getOrderForConfirmation(orderNumber, token) : null;
+  if (order?.paymentMethod === "PAYMOB" && order.paymentStatus === "PENDING") {
+    try {
+      await reconcilePaymobOrderPayment(order.id);
+      order = await getOrderForConfirmation(order.orderNumber, token);
+    } catch {
+      // The signed webhook remains authoritative if the inquiry service is temporarily unavailable.
+    }
+  }
   const paid = order?.paymentStatus === "PAID";
   const failed = order?.paymentStatus === "FAILED";
   const Icon = paid ? CheckCircle2 : failed ? XCircle : Clock3;

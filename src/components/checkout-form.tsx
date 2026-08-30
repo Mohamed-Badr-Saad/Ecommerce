@@ -14,7 +14,7 @@ import { Textarea } from "./ui/textarea";
 
 type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "street" | "apartment" | "city" | "governorate" | "postalCode", string>>;
 
-export function CheckoutForm({ subtotal, defaults = {} }: { subtotal: number; defaults?: Defaults }) {
+export function CheckoutForm({ subtotal, originalSubtotal, discount, defaults = {} }: { subtotal: number; originalSubtotal: number; discount: number; defaults?: Defaults }) {
   const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
   const [paymentMethod, setPaymentMethod] = useState<"PAYMOB" | "COD">("PAYMOB");
@@ -69,8 +69,10 @@ export function CheckoutForm({ subtotal, defaults = {} }: { subtotal: number; de
           </label>
         </fieldset>
         <dl className="mt-7 space-y-4 border-y border-border py-5 text-sm">
-          <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatEgp(subtotal)}</dd></div>
+          <div className="flex justify-between"><dt>Merchandise</dt><dd>{formatEgp(originalSubtotal)}</dd></div>
+          {discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(discount)}</dd></div> : null}
           <div className="flex justify-between"><dt>Delivery</dt><dd>{estimatedShipping === null ? "Calculated from address" : estimatedShipping === 0 ? "Complimentary" : formatEgp(estimatedShipping)}</dd></div>
+          <div className="flex justify-between font-medium"><dt>Total</dt><dd>{formatEgp(subtotal + (estimatedShipping ?? 0))}</dd></div>
         </dl>
         {state.error ? <p role="alert" className="mt-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{state.error}</p> : null}
         <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}{paymentMethod === "PAYMOB" ? "Continue to secure payment" : "Place COD order"}</Button>

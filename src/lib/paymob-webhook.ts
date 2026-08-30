@@ -1,7 +1,7 @@
 import type { Prisma } from "../generated/prisma/client";
 import { getPaymobIntegrationId, verifyPaymobTransactionHmac } from "./paymob";
 import { prisma } from "./prisma";
-import { markPaymobOrderPaid, releasePaymobReservation } from "./reservations";
+import { markPaymobOrderPaid, recordPaymobAttempt } from "./reservations";
 
 export class PaymobWebhookError extends Error {
   constructor(message: string, readonly status: number) {
@@ -41,11 +41,14 @@ export async function processPaymobWebhook(body: unknown, receivedHmac: string) 
   ) throw new PaymobWebhookError("Callback does not match the reserved order.", 409);
 
   const rawResponse = JSON.parse(JSON.stringify(object)) as Prisma.InputJsonValue;
-  if (object.pending === true) return { outcome: "pending" as const, orderNumber: order.orderNumber };
+  if (object.pending === true) {
+    await recordPaymobAttempt(order.id, String(providerTransactionId), "PENDING", rawResponse);
+    return { outcome: "pending" as const, orderNumber: order.orderNumber };
+  }
   if (object.success === true) {
     await markPaymobOrderPaid(order.id, String(providerTransactionId), rawResponse);
     return { outcome: "paid" as const, orderNumber: order.orderNumber };
   }
-  await releasePaymobReservation(order.id, new Date(), { providerTransactionId: String(providerTransactionId), rawResponse });
-  return { outcome: "failed" as const, orderNumber: order.orderNumber };
+  await recordPaymobAttempt(order.id, String(providerTransactionId), "FAILED", rawResponse);
+  return { outcome: "attempt_failed" as const, orderNumber: order.orderNumber };
 }

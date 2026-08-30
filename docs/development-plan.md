@@ -65,6 +65,8 @@ The product and collection records in this chunk are presentation fixtures. Chun
 - CSV exports and printable documents
 - Admin workflow tests
 
+Current progress: fulfillment, safe unpaid cancellation/restocking, customers, reviews, analytics, activity, settings, CSV, and print workflows are implemented. Paymob-backed refunds remain.
+
 ## Chunk 10 — Production readiness
 
 - Accessibility audit, security hardening, rate limiting, observability, and performance budgets

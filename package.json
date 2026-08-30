@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "overrides": {
-    "deepmerge-ts": "8.0.2"
+    "deepmerge-ts": "8.0.2",
+    "effect": "3.22.1"
   },
   "scripts": {
     "postinstall": "prisma generate",
@@ -16,21 +17,27 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude **/*.db.test.ts",
-    "test:db": "vitest run src/lib/prisma.db.test.ts src/lib/catalog.db.test.ts src/lib/customer.db.test.ts src/lib/auth.db.test.ts src/lib/commerce.db.test.ts",
+    "test:db": "vitest run --no-file-parallelism --testTimeout=15000 --hookTimeout=20000 src/lib/prisma.db.test.ts src/lib/catalog.db.test.ts src/lib/customer.db.test.ts src/lib/auth.db.test.ts src/lib/commerce.db.test.ts src/lib/admin.db.test.ts src/lib/admin-catalog.db.test.ts src/lib/admin-orders.db.test.ts src/lib/admin-operations.db.test.ts",
     "test:e2e:commerce": "tsx scripts/verify-commerce.ts",
+    "test:e2e:cart-discount": "tsx scripts/verify-cart-discount.ts",
     "test:e2e:paymob": "node --use-system-ca --import tsx scripts/verify-paymob.ts",
+    "test:e2e:admin": "tsx scripts/verify-admin.ts",
+    "test:e2e:admin-catalog": "tsx scripts/verify-admin-catalog.ts",
+    "test:e2e:admin-operations": "tsx scripts/verify-admin-operations.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
+    "admin:ensure": "tsx scripts/ensure-super-admin.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "^1.7.1",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@supabase/supabase-js": "2.112.4",
     "better-auth": "^1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

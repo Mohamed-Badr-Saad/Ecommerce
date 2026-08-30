@@ -19,7 +19,7 @@ function FilterGroup({
   options: Option[];
   active?: string;
   query: CatalogQuery;
-  field: "category" | "color" | "size" | "availability";
+  field: "collection" | "category" | "color" | "size" | "availability";
   pathname: string;
 }) {
   return (
@@ -45,23 +45,26 @@ function FilterGroup({
 export function CatalogControls({
   query,
   categories,
+  collections,
   colors,
   sizes,
   pathname,
 }: {
   query: CatalogQuery;
   categories: { name: string; slug: string }[];
+  collections: { name: string; slug: string }[];
   colors: { name: string; hex: string | null }[];
   sizes: string[];
   pathname: string;
 }) {
-  const hasFilters = Boolean(query.q || query.category || query.color || query.size || query.availability || query.sort !== "newest");
+  const hasFilters = Boolean(query.q || query.collection || query.category || query.color || query.size || query.availability || query.sort !== "newest");
   const filterContent = (mobile: boolean) => <>
       <form action={pathname} className="mb-6 flex gap-2">
         <Input name="q" defaultValue={query.q} placeholder="Search pieces" aria-label="Search products" className="h-11 rounded-none bg-card" />
         <Button type="submit" size="icon" className="size-11 shrink-0 rounded-none" aria-label="Submit search"><Search /></Button>
       </form>
 
+      {collections.length ? <FilterGroup label="Collection" field="collection" active={query.collection} query={query} pathname={pathname} options={collections.map((item) => ({ label: item.name, value: item.slug }))} /> : null}
       <FilterGroup label="Category" field="category" active={query.category} query={query} pathname={pathname} options={categories.map((item) => ({ label: item.name, value: item.slug }))} />
       <FilterGroup label="Size" field="size" active={query.size} query={query} pathname={pathname} options={sizes.map((size) => ({ label: size, value: size }))} />
       <FilterGroup label="Colour" field="color" active={query.color} query={query} pathname={pathname} options={colors.map((color) => ({ label: color.name, value: color.name, swatch: color.hex }))} />

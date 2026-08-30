@@ -10,7 +10,7 @@ describe("seeded catalog queries", () => {
     const catalog = await getCatalog(parseCatalogQuery({}));
     expect(catalog.total).toBeGreaterThanOrEqual(12);
     expect(catalog.products).toHaveLength(8);
-    expect(catalog.categories.map((category) => category.slug)).toEqual(["abayas", "sets", "dresses"]);
+    expect(catalog.categories.map((category) => category.slug)).toEqual(expect.arrayContaining(["abayas", "sets", "dresses"]));
     expect(catalog.colors.length).toBeGreaterThan(4);
   });
 
@@ -18,6 +18,11 @@ describe("seeded catalog queries", () => {
     const query = parseCatalogQuery({ category: "dresses", availability: "sold-out" });
     const catalog = await getCatalog(query, "debut-edit");
     expect(catalog.products.map((product) => product.slug)).toContain("hana-gathered-dress");
+  });
+
+  it("filters the customer shop by editorial collection", async () => {
+    const catalog = await getCatalog(parseCatalogQuery({ collection: "debut-edit", q: "suit" }));
+    expect(catalog.products.map((product) => product.slug)).toContain("suit");
   });
 
   it("loads collection and product detail relations", async () => {

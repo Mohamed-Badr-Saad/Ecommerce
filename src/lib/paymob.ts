@@ -20,6 +20,32 @@ const intentionResponseSchema = z.object({
   confirmed: z.boolean().optional(),
 });
 
+const authResponseSchema = z.object({ token: z.string().min(1) });
+
+const inquiryTransactionSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  success: z.boolean(),
+  pending: z.boolean(),
+  error_occured: z.boolean().optional(),
+  amount_cents: z.coerce.number().int().nonnegative(),
+  currency: z.string(),
+  integration_id: z.coerce.number().int().positive(),
+  is_live: z.boolean(),
+  created_at: z.string().optional(),
+  order: z.object({
+    id: z.union([z.string(), z.number()]),
+    merchant_order_id: z.string(),
+  }),
+}).passthrough();
+
+export type PaymobInquiryExpectation = {
+  providerOrderId: string;
+  orderNumber: string;
+  amountCents: number;
+  currency: string;
+  integrationId: number;
+};
+
 export type PaymobIntentionInput = {
   amountCents: number;
   orderNumber: string;
@@ -136,6 +162,49 @@ export function verifyPaymobTransactionHmac(object: Record<string, unknown>, rec
 
 export function getPaymobIntegrationId() {
   return getPaymobConfig().integrationId;
+}
+
+export function parseMatchingPaymobInquiryTransaction(value: unknown, expected: PaymobInquiryExpectation) {
+  const parsed = inquiryTransactionSchema.safeParse(value);
+  if (!parsed.success) return null;
+  const transaction = parsed.data;
+  if (
+    String(transaction.order.id) !== expected.providerOrderId ||
+    transaction.order.merchant_order_id !== expected.orderNumber ||
+    transaction.amount_cents !== expected.amountCents ||
+    transaction.currency !== expected.currency ||
+    transaction.integration_id !== expected.integrationId
+  ) return null;
+  return transaction;
+}
+
+export async function inquirePaymobTransactions(providerOrderId: string) {
+  const apiKey = z.string().min(1).parse(process.env.PAYMOB_API_KEY);
+  const authResponse = await fetch(`${PAYMOB_BASE_URL}/api/auth/tokens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!authResponse.ok) throw new PaymobError("Paymob authentication failed.", authResponse.status);
+  const auth = authResponseSchema.safeParse(await authResponse.json());
+  if (!auth.success) throw new PaymobError("Paymob returned an unexpected authentication response.");
+
+  const inquiryResponse = await fetch(`${PAYMOB_BASE_URL}/api/ecommerce/orders/transaction_inquiry`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${auth.data.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ order_id: providerOrderId }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!inquiryResponse.ok) throw new PaymobError("Paymob transaction inquiry failed.", inquiryResponse.status);
+  const response = await inquiryResponse.json();
+  if (Array.isArray(response)) return response as unknown[];
+  if (typeof response === "object" && response !== null) {
+    const record = response as Record<string, unknown>;
+    if (Array.isArray(record.results)) return record.results;
+    if (Array.isArray(record.transactions)) return record.transactions;
+  }
+  throw new PaymobError("Paymob returned an unexpected transaction inquiry response.");
 }
 
 export function egpToCents(value: number) {

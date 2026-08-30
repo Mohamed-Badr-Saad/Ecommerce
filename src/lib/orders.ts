@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Prisma } from "../generated/prisma/client";
-import { calculateShipping, type CheckoutInput } from "./commerce";
+import { calculateMerchandiseTotals, calculateShipping, type CheckoutInput } from "./commerce";
 import { getMutableCartId } from "./cart";
 import { prisma } from "./prisma";
 import { PAYMENT_RESERVATION_MS } from "./reservations";
@@ -43,11 +43,11 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
       const stock = item.variant?.stockQuantity ?? item.product.stockQuantity;
       if (item.product.status !== "ACTIVE" || stock < item.quantity) throw new CheckoutError(`${item.product.title} is no longer available in the requested quantity.`);
       const price = item.variant?.price ?? item.product.price;
-      return { item, price, total: price.mul(item.quantity) };
+      return { item, price, compareAtPrice: item.product.compareAtPrice, total: price.mul(item.quantity) };
     });
-    const subtotal = lines.reduce((total, line) => total + Number(line.total), 0);
-    const shippingCost = calculateShipping(subtotal, input.governorate);
-    const total = subtotal + shippingCost;
+    const merchandise = calculateMerchandiseTotals(lines.map((line) => ({ price: Number(line.price), compareAtPrice: line.compareAtPrice ? Number(line.compareAtPrice) : null, quantity: line.item.quantity })));
+    const shippingCost = calculateShipping(merchandise.subtotal, input.governorate);
+    const total = merchandise.subtotal + shippingCost;
 
     for (const { item } of lines) {
       if (item.variantId) {
@@ -68,8 +68,9 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
         paymentMethod,
         inventoryReservedAt: now,
         reservationExpiresAt,
-        subtotal,
+        subtotal: merchandise.originalSubtotal,
         shippingCost,
+        discount: merchandise.discount,
         total,
         customerEmail: input.email,
         customerPhone: input.phone,

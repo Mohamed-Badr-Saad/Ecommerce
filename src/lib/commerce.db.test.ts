@@ -78,32 +78,47 @@ describe("transactional COD checkout", () => {
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(before.stockQuantity);
   });
 
-  it("accepts an authentic Paymob callback once and confirms the reserved order", async () => {
+  it("keeps stock reserved after a failed Paymob attempt and confirms a later successful retry", async () => {
+    const stockBefore = await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } });
     const cart = await cartWithQuantity(1);
     const result = await createPaymobOrderFromCart(cart.id, checkout);
     const order = await prisma.order.findUniqueOrThrow({ where: { id: result.orderId } });
     const providerOrderId = 88001122;
-    const transactionId = 99001122;
+    const failedTransactionId = 99001121;
+    const successfulTransactionId = 99001122;
     await recordPaymobIntention(order.id, String(providerOrderId), { status: "intended" });
     const object = {
       amount_cents: Math.round(Number(order.total) * 100), created_at: "2026-08-22T12:00:00.000000", currency: "EGP",
-      error_occured: false, has_parent_transaction: false, id: transactionId,
+      error_occured: true, has_parent_transaction: false, id: failedTransactionId,
       integration_id: Number(process.env.PAYMOB_INTEGRATION_ID), is_3d_secure: true, is_auth: false, is_capture: false,
       is_refunded: false, is_standalone_payment: true, is_voided: false,
       order: { id: providerOrderId, merchant_order_id: order.orderNumber }, owner: 1, pending: false,
-      source_data: { pan: "1111", sub_type: "MasterCard", type: "card" }, success: true,
+      source_data: { pan: "1111", sub_type: "MasterCard", type: "card" }, success: false,
     };
-    const concatenated = [object.amount_cents, object.created_at, object.currency, object.error_occured, object.has_parent_transaction,
-      object.id, object.integration_id, object.is_3d_secure, object.is_auth, object.is_capture, object.is_refunded,
-      object.is_standalone_payment, object.is_voided, object.order.id, object.owner, object.pending,
-      object.source_data.pan, object.source_data.sub_type, object.source_data.type, object.success].map(String).join("");
-    const hmac = createHmac("sha512", process.env.PAYMOB_HMAC_SECRET!).update(concatenated).digest("hex");
+    const sign = (callback: typeof object) => createHmac("sha512", process.env.PAYMOB_HMAC_SECRET!).update([
+      callback.amount_cents, callback.created_at, callback.currency, callback.error_occured, callback.has_parent_transaction,
+      callback.id, callback.integration_id, callback.is_3d_secure, callback.is_auth, callback.is_capture, callback.is_refunded,
+      callback.is_standalone_payment, callback.is_voided, callback.order.id, callback.owner, callback.pending,
+      callback.source_data.pan, callback.source_data.sub_type, callback.source_data.type, callback.success,
+    ].map(String).join("")).digest("hex");
 
-    expect((await processPaymobWebhook({ obj: object }, hmac)).outcome).toBe("paid");
-    expect((await processPaymobWebhook({ obj: object }, hmac)).outcome).toBe("paid");
-    const paid = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { payments: true } });
+    expect((await processPaymobWebhook({ obj: object }, sign(object))).outcome).toBe("attempt_failed");
+    const afterFailure = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { payments: { include: { attempts: true } } } });
+    expect(afterFailure.status).toBe("PENDING");
+    expect(afterFailure.paymentStatus).toBe("PENDING");
+    expect(afterFailure.inventoryReleasedAt).toBeNull();
+    expect(afterFailure.payments[0].attempts[0].status).toBe("FAILED");
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(stockBefore.stockQuantity - 1);
+
+    const successful = { ...object, id: successfulTransactionId, error_occured: false, success: true };
+
+    expect((await processPaymobWebhook({ obj: successful }, sign(successful))).outcome).toBe("paid");
+    expect((await processPaymobWebhook({ obj: successful }, sign(successful))).outcome).toBe("paid");
+    const paid = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { payments: { include: { attempts: true } } } });
     expect(paid.status).toBe("CONFIRMED");
     expect(paid.paymentStatus).toBe("PAID");
-    expect(paid.payments[0].providerTransactionId).toBe(String(transactionId));
+    expect(paid.payments[0].providerTransactionId).toBe(String(successfulTransactionId));
+    expect(paid.payments[0].attempts).toHaveLength(2);
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stockQuantity).toBe(stockBefore.stockQuantity - 1);
   });
 });

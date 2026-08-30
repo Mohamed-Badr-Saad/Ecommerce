@@ -7,9 +7,25 @@ export class ReservationError extends Error {}
 
 type ReleaseOptions = {
   restoreCartId?: string;
-  providerTransactionId?: string;
-  rawResponse?: Prisma.InputJsonValue;
 };
+
+type AttemptStatus = "PENDING" | "FAILED" | "PAID";
+
+async function savePaymobAttempt(tx: Prisma.TransactionClient, paymentId: string, providerTransactionId: string, status: AttemptStatus, rawResponse: Prisma.InputJsonValue, processedAt: Date) {
+  const existing = await tx.paymentAttempt.findUnique({ where: { providerTransactionId } });
+  if (existing?.paymentId !== undefined && existing.paymentId !== paymentId) throw new ReservationError("The Paymob transaction belongs to another payment.");
+  if (existing?.status === "PAID" && status !== "PAID") return existing;
+  return existing
+    ? tx.paymentAttempt.update({ where: { id: existing.id }, data: { status, rawResponse, processedAt } })
+    : tx.paymentAttempt.create({ data: { paymentId, providerTransactionId, status, rawResponse, processedAt } });
+}
+
+export async function recordPaymobAttempt(orderId: string, providerTransactionId: string, status: AttemptStatus, rawResponse: Prisma.InputJsonValue, processedAt = new Date()) {
+  return prisma.$transaction(async (tx) => {
+    const payment = await tx.payment.findFirstOrThrow({ where: { orderId, provider: "PAYMOB" } });
+    return savePaymobAttempt(tx, payment.id, providerTransactionId, status, rawResponse, processedAt);
+  }, { isolationLevel: "Serializable" });
+}
 
 export async function releasePaymobReservation(orderId: string, now = new Date(), options: ReleaseOptions = {}) {
   return prisma.$transaction(async (tx) => {
@@ -37,8 +53,6 @@ export async function releasePaymobReservation(orderId: string, now = new Date()
       data: {
         status: "FAILED",
         failedAt: now,
-        ...(options.providerTransactionId ? { providerTransactionId: options.providerTransactionId } : {}),
-        ...(options.rawResponse ? { rawResponse: options.rawResponse } : {}),
       },
     });
     return true;
@@ -72,20 +86,38 @@ export async function releaseExpiredPaymentReservations(now = new Date()) {
 
 export async function markPaymobOrderPaid(orderId: string, providerTransactionId: string, rawResponse: Prisma.InputJsonValue, paidAt = new Date()) {
   return prisma.$transaction(async (tx) => {
-    const payment = await tx.payment.updateMany({
-      where: { orderId, provider: "PAYMOB", status: "PENDING" },
-      data: { status: "PAID", providerTransactionId, rawResponse, paidAt },
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: orderId },
+      include: { items: true, payments: { where: { provider: "PAYMOB" }, take: 1 } },
     });
-    if (!payment.count) {
-      const duplicate = await tx.payment.findFirst({ where: { orderId, providerTransactionId, status: "PAID" } });
-      if (duplicate) return tx.order.findUniqueOrThrow({ where: { id: orderId } });
-      throw new ReservationError("This payment reservation was released or already processed.");
+    const payment = order.payments[0];
+    if (!payment) throw new ReservationError("The Paymob payment record is missing.");
+
+    if (payment.providerTransactionId && payment.rawResponse && payment.status === "FAILED") {
+      await savePaymobAttempt(tx, payment.id, payment.providerTransactionId, "FAILED", payment.rawResponse, payment.failedAt ?? paidAt);
     }
-    const updated = await tx.order.updateMany({
-      where: { id: orderId, paymentMethod: "PAYMOB", paymentStatus: "PENDING", inventoryReleasedAt: null },
-      data: { status: "CONFIRMED", paymentStatus: "PAID" },
+    await savePaymobAttempt(tx, payment.id, providerTransactionId, "PAID", rawResponse, paidAt);
+    if (order.paymentStatus === "PAID") return order;
+
+    if (order.inventoryReleasedAt) {
+      for (const item of order.items) {
+        if (item.variantId) {
+          const variant = await tx.productVariant.updateMany({ where: { id: item.variantId, stockQuantity: { gte: item.quantity } }, data: { stockQuantity: { decrement: item.quantity } } });
+          if (!variant.count) throw new ReservationError("Paid inventory is no longer available and requires manual review.");
+        }
+        const product = await tx.product.updateMany({ where: { id: item.productId, stockQuantity: { gte: item.quantity } }, data: { stockQuantity: { decrement: item.quantity } } });
+        if (!product.count) throw new ReservationError("Paid inventory is no longer available and requires manual review.");
+      }
+    }
+
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: { status: "PAID", providerTransactionId, rawResponse, paidAt, failedAt: null },
     });
-    if (!updated.count) throw new ReservationError("This payment reservation was released or already processed.");
+    await tx.order.update({
+      where: { id: orderId },
+      data: { status: "CONFIRMED", paymentStatus: "PAID", inventoryReleasedAt: null, cancelledAt: null },
+    });
     return tx.order.findUniqueOrThrow({ where: { id: orderId } });
   }, { isolationLevel: "Serializable" });
 }

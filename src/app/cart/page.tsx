@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { removeCartItemAction, updateCartItemAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/commerce";
 import { getCart } from "@/lib/cart";
 import { formatEgp } from "@/lib/storefront";
@@ -26,12 +25,16 @@ export default async function CartPage() {
             <div><Link href={`/products/${item.slug}`} className="font-heading text-2xl hover:underline">{item.title}</Link>{item.variantTitle ? <p className="mt-1 text-sm text-muted-foreground">{item.variantTitle}</p> : null}<p className="mt-3 text-sm">{formatEgp(item.price)}</p>{!item.available ? <p className="mt-2 text-xs text-destructive">Only {item.availableStock} available. Update the quantity to continue.</p> : null}</div>
             <div className="col-start-2 flex flex-wrap items-center justify-between gap-3 sm:col-start-auto sm:flex-col sm:items-end">
               <p className="font-medium">{formatEgp(item.lineTotal)}</p>
-              <form action={updateCartItemAction.bind(null, item.id)} className="flex items-center gap-2"><Minus className="size-3 text-muted-foreground" /><Input name="quantity" type="number" min={1} max={Math.min(10, item.availableStock)} defaultValue={item.quantity} aria-label={`Quantity for ${item.title}`} className="h-9 w-16 rounded-none text-center" /><Plus className="size-3 text-muted-foreground" /><Button type="submit" variant="outline" size="sm" className="rounded-none">Update</Button></form>
+              <div className="flex items-center border border-border" role="group" aria-label={`Quantity for ${item.title}`}>
+                <form action={updateCartItemAction.bind(null, item.id)}><input type="hidden" name="quantity" value={item.quantity - 1} /><Button type="submit" variant="ghost" size="icon" className="rounded-none" disabled={item.quantity <= 1} aria-label={`Decrease ${item.title} quantity`}><Minus aria-hidden="true" /></Button></form>
+                <output className="min-w-10 text-center text-sm font-medium" aria-live="polite">{item.quantity}</output>
+                <form action={updateCartItemAction.bind(null, item.id)}><input type="hidden" name="quantity" value={item.quantity + 1} /><Button type="submit" variant="ghost" size="icon" className="rounded-none" disabled={item.quantity >= Math.min(10, item.availableStock)} aria-label={`Increase ${item.title} quantity`}><Plus aria-hidden="true" /></Button></form>
+              </div>
               <form action={removeCartItemAction.bind(null, item.id)}><Button type="submit" variant="ghost" size="sm" className="text-muted-foreground"><Trash2 /> Remove</Button></form>
             </div>
           </article>)}
         </section>
-        <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32"><h2 className="font-heading text-3xl">Order summary</h2><dl className="mt-6 space-y-4 border-y border-border py-5 text-sm"><div className="flex justify-between"><dt>Items ({cart.count})</dt><dd>{formatEgp(cart.subtotal)}</dd></div><div className="flex justify-between"><dt>Delivery</dt><dd>At checkout</dd></div></dl><div className="mt-5 flex justify-between font-medium"><span>Subtotal</span><span>{formatEgp(cart.subtotal)}</span></div><p className="mt-4 text-xs leading-5 text-muted-foreground">{remaining ? `Add ${formatEgp(remaining)} more for complimentary delivery.` : "Your order qualifies for complimentary delivery."}</p><Button asChild className="mt-6 h-12 w-full rounded-none" aria-disabled={!canCheckout}><Link href={canCheckout ? "/checkout" : "/cart"}>Continue to checkout</Link></Button></aside>
+        <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32"><h2 className="font-heading text-3xl">Order summary</h2><dl className="mt-6 space-y-4 border-y border-border py-5 text-sm"><div className="flex justify-between"><dt>Merchandise ({cart.count})</dt><dd>{formatEgp(cart.originalSubtotal)}</dd></div>{cart.discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(cart.discount)}</dd></div> : null}<div className="flex justify-between"><dt>Delivery</dt><dd>At checkout</dd></div></dl><div className="mt-5 flex justify-between font-medium"><span>Subtotal</span><span>{formatEgp(cart.subtotal)}</span></div><p className="mt-4 text-xs leading-5 text-muted-foreground">{remaining ? `Add ${formatEgp(remaining)} more for complimentary delivery.` : "Your order qualifies for complimentary delivery."}</p><Button asChild className="mt-6 h-12 w-full rounded-none" aria-disabled={!canCheckout}><Link href={canCheckout ? "/checkout" : "/cart"}>Continue to checkout</Link></Button></aside>
       </div>
     </main>
   );

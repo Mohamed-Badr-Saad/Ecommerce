@@ -8,6 +8,9 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   NEXT_PUBLIC_APP_URL: z.url(),
   RESEND_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
+  SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_").optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().min(3).max(63).default("talie-catalog"),
 });
 
 const vercelDeploymentUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
@@ -20,4 +23,7 @@ export const serverEnv = serverEnvSchema.parse({
   BETTER_AUTH_URL: authenticationUrl,
   NEXT_PUBLIC_APP_URL: applicationUrl,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+  SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET,
 });

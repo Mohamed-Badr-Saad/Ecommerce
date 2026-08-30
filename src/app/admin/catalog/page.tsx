@@ -1,0 +1,46 @@
+import Link from "next/link";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { getAdminCatalog } from "@/lib/admin-catalog";
+import { formatEgp } from "@/lib/storefront";
+import { createCategoryAction, createCollectionAction, createProductAction, createTagAction, toggleCategoryAction } from "./actions";
+
+export const metadata = { title: "Catalog | Admin" };
+
+export default async function AdminCatalogPage() {
+  const { products, categories, tags, collections } = await getAdminCatalog();
+  return <section>
+    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Merchandising</p>
+    <h2 className="mt-3 font-heading text-5xl tracking-[-0.04em]">Catalog</h2>
+    <p className="mt-3 text-muted-foreground">Manage products, inventory, categories, and discovery tags.</p>
+
+    <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,.8fr)]">
+      <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Products</CardTitle></CardHeader><CardContent className="overflow-x-auto px-0">
+        {products.length ? <table className="w-full min-w-[44rem] text-left text-sm"><thead className="border-y bg-secondary/40 text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="px-6 py-3">Product</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Inventory</th><th className="px-6 py-3 text-right">Price</th></tr></thead><tbody className="divide-y">{products.map((product) => <tr key={product.id}><td className="px-6 py-4"><Link className="font-medium underline-offset-4 hover:underline" href={`/admin/catalog/${product.id}`}>{product.title}</Link><p className="text-xs text-muted-foreground">{product.sku ?? "No base SKU"}</p></td><td className="px-4 py-4">{product.category.name}</td><td className="px-4 py-4"><Badge variant="outline" className="rounded-none">{product.status.toLowerCase()}</Badge></td><td className="px-4 py-4">{product.stockQuantity} total · {product.variants.length} options</td><td className="px-6 py-4 text-right">{formatEgp(Number(product.price))}</td></tr>)}</tbody></table> : <p className="p-10 text-center text-muted-foreground">No products yet. Create the first product below.</p>}
+      </CardContent></Card>
+
+      <div className="space-y-6">
+        <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">New product</CardTitle></CardHeader><CardContent><form action={createProductAction} className="grid gap-4">
+          <div><Label htmlFor="product-title">Title</Label><Input id="product-title" name="title" required /></div><div><Label htmlFor="product-slug">Slug</Label><Input id="product-slug" name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></div>
+          <div><Label htmlFor="product-description">Description</Label><Textarea id="product-description" name="description" minLength={10} required /></div>
+          <div><Label htmlFor="product-category">Category</Label><select id="product-category" name="categoryId" required className="h-10 w-full border border-input bg-background px-3 text-sm">{categories.filter((item) => item.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
+          <fieldset className="border p-3"><legend className="px-1 text-sm font-medium">Collections</legend><div className="grid gap-2">{collections.filter((item) => item.isActive).map((collection) => <label key={collection.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="collectionIds" value={collection.id} defaultChecked={collection.slug === "debut-edit"} /> {collection.name}</label>)}</div></fieldset>
+          <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="product-price">Price</Label><Input id="product-price" name="price" type="number" min="0.01" step="0.01" required /></div><div><Label htmlFor="product-compare">Compare at</Label><Input id="product-compare" name="compareAtPrice" type="number" min="0" step="0.01" /></div></div>
+          <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="product-sku">Base SKU</Label><Input id="product-sku" name="sku" /></div><div><Label htmlFor="product-stock">Stock</Label><Input id="product-stock" name="stockQuantity" type="number" min="0" defaultValue="0" required /></div></div>
+          <input type="hidden" name="lowStockThreshold" value="5" /><input type="hidden" name="status" value="DRAFT" /><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isFeatured" /> Featured</label><Button className="rounded-none">Create draft</Button>
+        </form></CardContent></Card>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Categories</CardTitle></CardHeader><CardContent><form action={createCategoryAction} className="grid gap-3 sm:grid-cols-2"><Input name="name" placeholder="Name" required /><Input name="slug" placeholder="slug" required /><Textarea name="description" placeholder="Description" className="sm:col-span-2" /><Button className="rounded-none sm:col-span-2">Add category</Button></form><ul className="mt-5 divide-y">{categories.map((category) => <li key={category.id} className="flex items-center justify-between py-3"><span>{category.name}</span><form action={toggleCategoryAction.bind(null, category.id)}><Button variant="outline" size="sm" className="rounded-none">{category.isActive ? "Deactivate" : "Activate"}</Button></form></li>)}</ul></CardContent></Card>
+      <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Tags</CardTitle></CardHeader><CardContent><form action={createTagAction} className="grid gap-3 sm:grid-cols-2"><Input name="name" placeholder="Name" required /><Input name="slug" placeholder="slug" required /><Button className="rounded-none sm:col-span-2">Add tag</Button></form><div className="mt-5 flex flex-wrap gap-2">{tags.map((tag) => <Badge key={tag.id} variant="outline" className="rounded-none">{tag.name} · {tag._count.products}</Badge>)}</div></CardContent></Card>
+      <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Collections</CardTitle></CardHeader><CardContent><form action={createCollectionAction} className="grid gap-3"><Input name="name" placeholder="Name" required /><Input name="slug" placeholder="slug" required /><Textarea name="description" placeholder="Description" /><Button className="rounded-none">Add collection</Button></form><div className="mt-5 flex flex-wrap gap-2">{collections.map((collection) => <Badge key={collection.id} variant="outline" className="rounded-none">{collection.name} · {collection._count.products}</Badge>)}</div></CardContent></Card>
+    </div>
+  </section>;
+}

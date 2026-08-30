@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FREE_SHIPPING_THRESHOLD, calculateShipping, checkoutSchema } from "./commerce";
+import { FREE_SHIPPING_THRESHOLD, calculateMerchandiseTotals, calculateShipping, checkoutSchema } from "./commerce";
 
 describe("checkout rules", () => {
   it("uses the configured Egyptian delivery zones", () => {
@@ -11,6 +11,13 @@ describe("checkout rules", () => {
 
   it("makes delivery complimentary at the storefront threshold", () => {
     expect(calculateShipping(FREE_SHIPPING_THRESHOLD, "Aswan")).toBe(0);
+  });
+
+  it("totals product markdowns separately from the amount due", () => {
+    expect(calculateMerchandiseTotals([
+      { price: 1690, compareAtPrice: 1990, quantity: 2 },
+      { price: 1490, compareAtPrice: null, quantity: 1 },
+    ])).toEqual({ originalSubtotal: 5470, discount: 600, subtotal: 4870 });
   });
 
   it("accepts an Egyptian COD delivery address", () => {

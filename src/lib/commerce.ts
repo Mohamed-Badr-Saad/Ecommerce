@@ -20,6 +20,16 @@ export function calculateShipping(subtotal: number, governorate: string) {
   return 140;
 }
 
+export function calculateMerchandiseTotals(lines: { price: number; compareAtPrice?: number | null; quantity: number }[]) {
+  return lines.reduce((totals, line) => {
+    const originalPrice = line.compareAtPrice && line.compareAtPrice > line.price ? line.compareAtPrice : line.price;
+    totals.originalSubtotal += originalPrice * line.quantity;
+    totals.subtotal += line.price * line.quantity;
+    totals.discount += (originalPrice - line.price) * line.quantity;
+    return totals;
+  }, { originalSubtotal: 0, subtotal: 0, discount: 0 });
+}
+
 export const cartQuantitySchema = z.coerce.number().int().min(1).max(CART_MAX_QUANTITY);
 
 export const checkoutSchema = z.object({

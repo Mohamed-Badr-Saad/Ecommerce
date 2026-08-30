@@ -37,6 +37,7 @@ export const auth = betterAuth({
     additionalFields: {
       phone: { type: "string", required: false },
       role: { type: ["CUSTOMER", "ADMIN"], required: false, defaultValue: "CUSTOMER", input: false },
+      adminRole: { type: ["SUPER_ADMIN", "ADMIN", "CONTENT_MANAGER", "SUPPORT"], required: false, input: false },
       banned: { type: "boolean", required: false, defaultValue: false, input: false },
     },
   },

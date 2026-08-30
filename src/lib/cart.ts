@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 
-import { CART_MAX_QUANTITY, cartQuantitySchema } from "./commerce";
+import { CART_MAX_QUANTITY, calculateMerchandiseTotals, cartQuantitySchema } from "./commerce";
 import { prisma } from "./prisma";
 import { releaseExpiredPaymentReservations } from "./reservations";
 import { getCurrentSession } from "./session";
@@ -36,6 +36,7 @@ export async function getCart() {
   const cart = await findCart();
   const items = (cart?.items ?? []).map((item) => {
     const price = Number(item.variant?.price ?? item.product.price);
+    const compareAtPrice = item.product.compareAtPrice ? Number(item.product.compareAtPrice) : null;
     const availableStock = item.variant?.stockQuantity ?? item.product.stockQuantity;
     return {
       id: item.id,
@@ -48,13 +49,14 @@ export async function getCart() {
       image: item.variant?.image ?? item.product.images[0]?.url ?? "/products/dress-mauve.svg",
       quantity: item.quantity,
       price,
+      compareAtPrice: compareAtPrice && compareAtPrice > price ? compareAtPrice : null,
       lineTotal: price * item.quantity,
       availableStock,
       available: item.product.status === "ACTIVE" && availableStock >= item.quantity,
     };
   });
-  const subtotal = items.reduce((total, item) => total + item.lineTotal, 0);
-  return { id: cart?.id, items, subtotal, count: items.reduce((total, item) => total + item.quantity, 0) };
+  const totals = calculateMerchandiseTotals(items);
+  return { id: cart?.id, items, ...totals, count: items.reduce((total, item) => total + item.quantity, 0) };
 }
 
 async function mutableCartId() {

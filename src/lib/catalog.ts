@@ -9,6 +9,7 @@ export type CatalogSearchParams = Record<string, string | string[] | undefined>;
 
 export type CatalogQuery = {
   q?: string;
+  collection?: string;
   category?: string;
   color?: string;
   size?: string;
@@ -40,6 +41,7 @@ export function parseCatalogQuery(params: CatalogSearchParams): CatalogQuery {
 
   return {
     q: first(params.q)?.trim().slice(0, 80) || undefined,
+    collection: first(params.collection)?.trim() || undefined,
     category: first(params.category)?.trim() || undefined,
     color: first(params.color)?.trim() || undefined,
     size: first(params.size)?.trim() || undefined,
@@ -54,6 +56,7 @@ export function catalogQueryString(query: CatalogQuery, overrides: Partial<Catal
   const params = new URLSearchParams();
 
   if (next.q) params.set("q", next.q);
+  if (next.collection) params.set("collection", next.collection);
   if (next.category) params.set("category", next.category);
   if (next.color) params.set("color", next.color);
   if (next.size) params.set("size", next.size);
@@ -77,6 +80,7 @@ function productWhere(query: CatalogQuery, collectionSlug?: string): Prisma.Prod
         }
       : {}),
     ...(query.category ? { category: { slug: query.category } } : {}),
+    ...(!collectionSlug && query.collection ? { collections: { some: { slug: query.collection, isActive: true } } } : {}),
     ...(query.color ? { variants: { some: { color: query.color } } } : {}),
     ...(query.size ? { variants: { some: { size: query.size } } } : {}),
     ...(query.availability === "in-stock" ? { stockQuantity: { gt: 0 } } : {}),
@@ -118,7 +122,7 @@ function mapProduct(product: {
 
 export async function getCatalog(query: CatalogQuery, collectionSlug?: string) {
   const where = productWhere(query, collectionSlug);
-  const [total, rows, categories, variants] = await Promise.all([
+  const [total, rows, categories, collections, variants] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({
       where,
@@ -131,6 +135,7 @@ export async function getCatalog(query: CatalogQuery, collectionSlug?: string) {
       take: CATALOG_PAGE_SIZE,
     }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
+    prisma.productCollection.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
     prisma.productVariant.findMany({
       where: { product: { status: "ACTIVE", ...(collectionSlug ? { collections: { some: { slug: collectionSlug } } } : {}) } },
       select: { color: true, colorHex: true, size: true },
@@ -143,7 +148,7 @@ export async function getCatalog(query: CatalogQuery, collectionSlug?: string) {
   const sizes = Array.from(new Set(variants.map((item) => item.size).filter((value): value is string => Boolean(value))));
   const pageCount = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
-  return { products: rows.map(mapProduct), total, pageCount, categories, colors, sizes };
+  return { products: rows.map(mapProduct), total, pageCount, categories, collections, colors, sizes };
 }
 
 export const getCollection = cache(async (slug: string) =>

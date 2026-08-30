@@ -15,7 +15,7 @@ export async function CatalogPage({ query, pathname, collectionSlug }: { query: 
 
   return (
     <div className="grid gap-10 lg:grid-cols-[16rem_1fr] lg:gap-12">
-      <CatalogControls query={effectiveQuery} categories={catalog.categories} colors={catalog.colors} sizes={catalog.sizes} pathname={pathname} />
+      <CatalogControls query={effectiveQuery} categories={catalog.categories} collections={collectionSlug ? [] : catalog.collections} colors={catalog.colors} sizes={catalog.sizes} pathname={pathname} />
       <div className="min-w-0">
         <div className="mb-7 flex min-w-0 items-center justify-between gap-4 border-b border-border pb-4 text-sm text-muted-foreground">
           <p>{catalog.total} {catalog.total === 1 ? "piece" : "pieces"}</p>

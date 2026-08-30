@@ -6,6 +6,7 @@ describe("catalog query parsing", () => {
   it("normalizes invalid paging and sorting values", () => {
     expect(parseCatalogQuery({ page: "-4", sort: "random", availability: "maybe" })).toEqual({
       q: undefined,
+      collection: undefined,
       category: undefined,
       color: undefined,
       size: undefined,
@@ -16,7 +17,7 @@ describe("catalog query parsing", () => {
   });
 
   it("preserves active filters while changing a page", () => {
-    const query = parseCatalogQuery({ q: "abaya", category: "abayas", sort: "price-asc" });
-    expect(catalogQueryString(query, { page: 2 })).toBe("?q=abaya&category=abayas&sort=price-asc&page=2");
+    const query = parseCatalogQuery({ q: "abaya", collection: "debut-edit", category: "abayas", sort: "price-asc" });
+    expect(catalogQueryString(query, { page: 2 })).toBe("?q=abaya&collection=debut-edit&category=abayas&sort=price-asc&page=2");
   });
 });
