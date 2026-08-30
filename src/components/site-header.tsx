@@ -19,8 +19,6 @@ import { getCurrentSession } from "@/lib/session";
 const navigation = [
   { label: "New arrivals", href: "/shop?sort=newest" },
   { label: "Shop", href: "/shop" },
-  { label: "Collections", href: "/collections/debut-edit" },
-  { label: "The Talié edit", href: "/#newsletter" },
 ];
 
 export async function SiteHeader() {
