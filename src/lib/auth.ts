@@ -1,8 +1,10 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
+import { after } from "next/server";
 
 import { prisma } from "./prisma";
+import { sendPasswordResetEmail } from "./email";
 import { serverEnv } from "./server-env";
 
 const vercelOrigins = [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
@@ -25,12 +27,9 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
-    sendResetPassword: async ({ user }) => {
-      // Resend delivery is connected in the email/production chunk. Better Auth
-      // still creates and validates the reset token during local development.
-      if (process.env.NODE_ENV === "development") {
-        console.info(`[Talié development mail] Password reset requested for ${user.email}.`);
-      }
+    resetPasswordTokenExpiresIn: 60 * 60,
+    sendResetPassword: async ({ user, url, token }) => {
+      await sendPasswordResetEmail({ idempotencyKey: `password-reset/${token}`, name: user.name, resetUrl: url, to: user.email });
     },
   },
   user: {
@@ -44,9 +43,11 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
-    cookieCache: { enabled: true, maxAge: 60 * 5 },
   },
-  advanced: { database: { joins: true } },
+  advanced: {
+    database: { joins: true },
+    backgroundTasks: { handler: (promise) => after(() => promise) },
+  },
   databaseHooks: {
     session: {
       create: {

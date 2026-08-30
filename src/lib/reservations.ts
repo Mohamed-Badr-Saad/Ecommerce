@@ -2,6 +2,7 @@ import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "./prisma";
 
 export const PAYMENT_RESERVATION_MS = 60 * 60 * 1000;
+export const RESERVATION_CLEANUP_BATCH_SIZE = 50;
 
 export class ReservationError extends Error {}
 
@@ -59,10 +60,13 @@ export async function releasePaymobReservation(orderId: string, now = new Date()
   }, { isolationLevel: "Serializable" });
 }
 
-export async function releaseExpiredPaymentReservations(now = new Date()) {
+export async function releaseExpiredPaymentReservations(now = new Date(), limit = RESERVATION_CLEANUP_BATCH_SIZE) {
+  const batchSize = Math.max(1, Math.min(Math.trunc(limit), RESERVATION_CLEANUP_BATCH_SIZE));
   const expired = await prisma.order.findMany({
     where: { paymentMethod: "PAYMOB", paymentStatus: "PENDING", reservationExpiresAt: { lte: now }, inventoryReleasedAt: null },
     select: { id: true },
+    orderBy: [{ reservationExpiresAt: "asc" }, { id: "asc" }],
+    take: batchSize,
   });
   let released = 0;
   for (const candidate of expired) {

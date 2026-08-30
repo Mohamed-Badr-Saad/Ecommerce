@@ -6,8 +6,18 @@ import { prisma } from "./prisma";
 
 export class AdminAuthorizationError extends Error {}
 
-export function assertAdminAccess(user: { role: UserRole; adminRole: AdminRole | null; banned: boolean }) {
-  if (user.banned || user.role !== "ADMIN" || !user.adminRole) throw new AdminAuthorizationError("Administrator access is required.");
+type AdminAccessUser = {
+  role?: UserRole | null;
+  adminRole?: AdminRole | null;
+  banned?: boolean | null;
+};
+
+export function hasAdminAccess(user: AdminAccessUser | null | undefined) {
+  return Boolean(user && !user.banned && user.role === "ADMIN" && user.adminRole);
+}
+
+export function assertAdminAccess(user: AdminAccessUser) {
+  if (!hasAdminAccess(user)) throw new AdminAuthorizationError("Administrator access is required.");
   return user;
 }
 

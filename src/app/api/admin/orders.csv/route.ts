@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
+import { csvCell } from "@/lib/csv";
 import { prisma } from "@/lib/prisma";
-
-function csvCell(value: unknown) { return `"${String(value ?? "").replaceAll('"', '""')}"`; }
 
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });

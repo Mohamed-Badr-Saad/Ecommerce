@@ -20,7 +20,7 @@ export default async function OrdersPage() {
       {orders.length ? (
         <div className="mt-8 space-y-4">
           {orders.map((order) => (
-            <Link key={order.id} href={`/order-confirmation/${order.orderNumber}?token=${order.checkoutToken}`}>
+            <Link key={order.id} href={`/order-confirmation/${order.orderNumber}`}>
               <Card className="mb-4 rounded-none transition-colors hover:bg-secondary/40">
                 <CardHeader>
                   <div className="flex flex-wrap items-center justify-between gap-3">

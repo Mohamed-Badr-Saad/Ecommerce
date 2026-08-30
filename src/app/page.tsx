@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { SectionHeading } from "@/components/section-heading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getHomeCatalog } from "@/lib/catalog";
 
 export default async function Home() {
@@ -164,21 +163,8 @@ export default async function Home() {
           <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground">
             Be first to discover new edits, styling notes, and private offers.
           </p>
-          <form className="mx-auto mt-8 flex max-w-xl flex-col gap-3 sm:flex-row">
-            <Input
-              type="email"
-              name="email"
-              aria-label="Email address"
-              placeholder="Your email address"
-              className="h-12 rounded-none bg-background px-4"
-              required
-            />
-            <Button type="submit" className="h-12 rounded-none px-8">
-              Subscribe
-            </Button>
-          </form>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Newsletter delivery will be connected in a later content chunk.
+          <p className="mx-auto mt-8 max-w-md border border-border bg-background px-5 py-4 text-sm text-muted-foreground">
+            Newsletter sign-up opens soon. Until then, new edits will appear first in the shop.
           </p>
         </div>
       </section>

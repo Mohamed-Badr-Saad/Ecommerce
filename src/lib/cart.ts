@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 
 import { CART_MAX_QUANTITY, calculateMerchandiseTotals, cartQuantitySchema } from "./commerce";
 import { prisma } from "./prisma";
-import { releaseExpiredPaymentReservations } from "./reservations";
 import { getCurrentSession } from "./session";
 
 const CART_COOKIE = "talie_cart";
@@ -32,7 +31,6 @@ async function findCart() {
 }
 
 export async function getCart() {
-  await releaseExpiredPaymentReservations();
   const cart = await findCart();
   const items = (cart?.items ?? []).map((item) => {
     const price = Number(item.variant?.price ?? item.product.price);
@@ -99,7 +97,6 @@ async function mutableCartId() {
 }
 
 export async function addCartItem(productId: string, variantId: string | null, rawQuantity: unknown) {
-  await releaseExpiredPaymentReservations();
   const quantity = cartQuantitySchema.parse(rawQuantity);
   const product = await prisma.product.findFirst({ where: { id: productId, status: "ACTIVE" }, include: { variants: true } });
   if (!product) throw new Error("This product is no longer available.");
