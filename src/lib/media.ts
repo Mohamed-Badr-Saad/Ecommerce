@@ -15,13 +15,14 @@ const configuredSupabaseHost = (() => {
     return undefined;
   }
 })();
+const configuredSupabaseBucket = process.env.SUPABASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "talie-catalog";
 
 export function isAllowedStorefrontImageUrl(value: string) {
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) return true;
   try {
     const url = new URL(value);
     const allowedHost = allowedRemoteImageHosts.has(url.hostname) || url.hostname === configuredSupabaseHost || url.hostname.endsWith(".ufs.sh");
-    const safeSupabasePath = url.hostname !== configuredSupabaseHost || url.pathname.startsWith("/storage/v1/object/public/talie-catalog/");
+    const safeSupabasePath = url.hostname !== configuredSupabaseHost || url.pathname.startsWith(`/storage/v1/object/public/${configuredSupabaseBucket}/`);
     return url.protocol === "https:" && allowedHost && safeSupabasePath;
   } catch {
     return false;

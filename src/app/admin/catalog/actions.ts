@@ -14,6 +14,11 @@ export async function createProductAction(formData: FormData) {
   const session = await requireAdminSession();
   const data = productInputSchema.parse({ ...Object.fromEntries(formData), isFeatured: checked(formData, "isFeatured") });
   const product = await createAdminProduct(data);
+  const imageUrls = formData.getAll("imageUrls").map(String).filter(Boolean);
+  if (imageUrls.length) {
+    const images = imageUrls.map((url) => productImageInputSchema.parse({ url, altText: product.title }));
+    await prisma.productImage.createMany({ data: images.map((image, index) => ({ productId: product.id, ...image, displayOrder: index, isPrimary: index === 0 })) });
+  }
   const selectedCollectionIds = formData.getAll("collectionIds").map(String).filter(Boolean);
   if (selectedCollectionIds.length) await prisma.product.update({ where: { id: product.id }, data: { collections: { connect: selectedCollectionIds.map((id) => ({ id })) } } });
   await logAdminActivity(session.user.id, { action: "created product", entityType: "product", entityId: product.id, details: { title: product.title } });
@@ -97,11 +102,14 @@ export async function updateVariantStockAction(productId: string, variantId: str
 
 export async function addProductImageAction(productId: string, formData: FormData) {
   const session = await requireAdminSession();
-  const data = productImageInputSchema.parse(Object.fromEntries(formData));
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId }, select: { title: true } });
   const count = await prisma.productImage.count({ where: { productId } });
-  const image = await prisma.productImage.create({ data: { productId, ...data, altText: data.altText || product.title, displayOrder: count, isPrimary: count === 0 } });
-  await logAdminActivity(session.user.id, { action: "added product image", entityType: "product-image", entityId: image.id, details: { productId } });
+  const urls = formData.getAll("url").map(String).filter(Boolean);
+  const altText = String(formData.get("altText") ?? "").trim() || product.title;
+  if (!urls.length) throw new Error("Upload at least one product image.");
+  const images = urls.map((url) => productImageInputSchema.parse({ url, altText }));
+  const created = await prisma.$transaction(images.map((image, index) => prisma.productImage.create({ data: { productId, ...image, displayOrder: count + index, isPrimary: count === 0 && index === 0 } })));
+  await logAdminActivity(session.user.id, { action: "added product images", entityType: "product-image", entityId: created[0]?.id, details: { productId, count: created.length } });
   revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 

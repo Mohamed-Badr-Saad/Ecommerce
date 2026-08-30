@@ -12,6 +12,7 @@ const supabaseImageHostname = (() => {
     return undefined;
   }
 })();
+const supabaseStorageBucket = process.env.SUPABASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "talie-catalog";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -57,7 +58,7 @@ const nextConfig: NextConfig = {
         hostname: "utfs.io",
       },
       ...(supabaseImageHostname
-        ? [{ protocol: "https" as const, hostname: supabaseImageHostname, pathname: "/storage/v1/object/public/talie-catalog/**" }]
+        ? [{ protocol: "https" as const, hostname: supabaseImageHostname, pathname: `/storage/v1/object/public/${supabaseStorageBucket}/**` }]
         : []),
     ],
   },

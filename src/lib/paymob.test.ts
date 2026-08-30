@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { egpToCents, parseMatchingPaymobInquiryTransaction, verifyPaymobTransactionHmac } from "./paymob";
+import { egpToCents, normalizePaymobInquiryResponse, parseMatchingPaymobInquiryTransaction, verifyPaymobTransactionHmac } from "./paymob";
 
 const originalHmacSecret = process.env.PAYMOB_HMAC_SECRET;
 
@@ -63,5 +63,7 @@ describe("Paymob payment helpers", () => {
     expect(parseMatchingPaymobInquiryTransaction(transaction, expected)?.success).toBe(true);
     expect(parseMatchingPaymobInquiryTransaction({ ...transaction, amount_cents: 357999 }, expected)).toBeNull();
     expect(parseMatchingPaymobInquiryTransaction({ ...transaction, order: { ...transaction.order, merchant_order_id: "another-order" } }, expected)).toBeNull();
+    expect(normalizePaymobInquiryResponse(transaction)).toEqual([transaction]);
+    expect(normalizePaymobInquiryResponse({ results: [transaction] })).toEqual([transaction]);
   });
 });

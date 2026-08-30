@@ -7,7 +7,7 @@ import { serverEnv } from "./server-env";
 let client: SupabaseClient | undefined;
 
 export function isSupabaseStorageConfigured() {
-  return Boolean(serverEnv.NEXT_PUBLIC_SUPABASE_URL && serverEnv.SUPABASE_SECRET_KEY);
+  return Boolean(serverEnv.NEXT_PUBLIC_SUPABASE_URL && serverEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY && serverEnv.SUPABASE_SECRET_KEY);
 }
 
 export function getSupabaseAdminClient() {

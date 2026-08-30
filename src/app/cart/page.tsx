@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/commerce";
 import { getCart } from "@/lib/cart";
 import { formatEgp } from "@/lib/storefront";
+import { getCurrentSession } from "@/lib/session";
 
 export const metadata = { title: "Your bag" };
 
 export default async function CartPage() {
-  const cart = await getCart();
+  const [cart, session] = await Promise.all([getCart(), getCurrentSession()]);
   if (!cart.items.length) return <main className="mx-auto flex min-h-[65svh] max-w-2xl flex-col items-center justify-center px-5 py-20 text-center"><ShoppingBag className="size-9 text-primary" /><h1 className="mt-5 font-heading text-5xl">Your bag is empty</h1><p className="mt-4 text-muted-foreground">The debut edit is ready whenever you are.</p><Button asChild className="mt-8 h-12 rounded-none px-8"><Link href="/shop">Explore the shop</Link></Button></main>;
   const canCheckout = cart.items.every((item) => item.available);
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - cart.subtotal);
+  const checkoutHref = session ? "/checkout" : "/sign-up?callbackURL=/checkout";
   return (
     <main className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Your selection</p><h1 className="mt-3 font-heading text-5xl">Shopping bag</h1>
@@ -34,7 +36,7 @@ export default async function CartPage() {
             </div>
           </article>)}
         </section>
-        <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32"><h2 className="font-heading text-3xl">Order summary</h2><dl className="mt-6 space-y-4 border-y border-border py-5 text-sm"><div className="flex justify-between"><dt>Merchandise ({cart.count})</dt><dd>{formatEgp(cart.originalSubtotal)}</dd></div>{cart.discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(cart.discount)}</dd></div> : null}<div className="flex justify-between"><dt>Delivery</dt><dd>At checkout</dd></div></dl><div className="mt-5 flex justify-between font-medium"><span>Subtotal</span><span>{formatEgp(cart.subtotal)}</span></div><p className="mt-4 text-xs leading-5 text-muted-foreground">{remaining ? `Add ${formatEgp(remaining)} more for complimentary delivery.` : "Your order qualifies for complimentary delivery."}</p><Button asChild className="mt-6 h-12 w-full rounded-none" aria-disabled={!canCheckout}><Link href={canCheckout ? "/checkout" : "/cart"}>Continue to checkout</Link></Button></aside>
+        <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32"><h2 className="font-heading text-3xl">Order summary</h2><dl className="mt-6 space-y-4 border-y border-border py-5 text-sm"><div className="flex justify-between"><dt>Merchandise ({cart.count})</dt><dd>{formatEgp(cart.originalSubtotal)}</dd></div>{cart.discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(cart.discount)}</dd></div> : null}<div className="flex justify-between"><dt>Delivery</dt><dd>At checkout</dd></div></dl><div className="mt-5 flex justify-between font-medium"><span>Subtotal</span><span>{formatEgp(cart.subtotal)}</span></div><p className="mt-4 text-xs leading-5 text-muted-foreground">{remaining ? `Add ${formatEgp(remaining)} more for complimentary delivery.` : "Your order qualifies for complimentary delivery."}</p>{!session ? <p className="mt-4 border border-primary/20 bg-card p-3 text-xs leading-5">Create an account to continue. Your bag will be kept and your order will be available in your account.</p> : null}<Button asChild className="mt-6 h-12 w-full rounded-none" aria-disabled={!canCheckout}><Link href={canCheckout ? checkoutHref : "/cart"}>{session ? "Continue to checkout" : "Create account to checkout"}</Link></Button></aside>
       </div>
     </main>
   );

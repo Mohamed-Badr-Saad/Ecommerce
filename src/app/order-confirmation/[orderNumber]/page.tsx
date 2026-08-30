@@ -7,11 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { getOrderForConfirmation } from "@/lib/orders";
 import { formatEgp } from "@/lib/storefront";
 
-type Props = { params: Promise<{ orderNumber: string }>; searchParams: Promise<{ token?: string }> };
+type Props = { params: Promise<{ orderNumber: string }> };
 
-export default async function OrderConfirmationPage({ params, searchParams }: Props) {
-  const [{ orderNumber }, { token }] = await Promise.all([params, searchParams]);
-  const order = await getOrderForConfirmation(orderNumber, token);
+export default async function OrderConfirmationPage({ params }: Props) {
+  const { orderNumber } = await params;
+  const order = await getOrderForConfirmation(orderNumber);
   if (!order) notFound();
 
   const paid = order.paymentStatus === "PAID";

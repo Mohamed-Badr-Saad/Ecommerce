@@ -5,11 +5,13 @@ import { storefrontImageUrlSchema } from "./media";
 
 const slug = z.string().trim().min(2).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens.");
 const optionalMoney = z.preprocess((value) => value === "" || value == null ? undefined : value, z.coerce.number().nonnegative().optional());
+const optionalImage = z.preprocess((value) => value === "" || value == null ? undefined : value, storefrontImageUrlSchema.optional());
 
 export const categoryInputSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug,
   description: z.string().trim().max(500).optional(),
+  image: optionalImage,
 });
 
 export const tagInputSchema = z.object({ name: z.string().trim().min(2).max(50), slug });
@@ -17,6 +19,7 @@ export const collectionInputSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug,
   description: z.string().trim().max(500).optional(),
+  image: optionalImage,
 });
 
 export const productInputSchema = z.object({
@@ -41,6 +44,7 @@ export const variantInputSchema = z.object({
   size: z.string().trim().max(30).optional(),
   price: optionalMoney,
   stockQuantity: z.coerce.number().int().nonnegative(),
+  image: optionalImage,
 });
 
 export const productImageInputSchema = z.object({

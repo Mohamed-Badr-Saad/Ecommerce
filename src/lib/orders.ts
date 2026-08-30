@@ -11,12 +11,14 @@ export class CheckoutError extends Error {}
 
 export async function createCodOrder(input: CheckoutInput) {
   const [cartId, session] = await Promise.all([getMutableCartId(), getCurrentSession()]);
-  return createCodOrderFromCart(cartId, input, session?.user.id);
+  if (!session || session.user.banned) throw new CheckoutError("Sign in to place your order.");
+  return createCodOrderFromCart(cartId, input, session.user.id);
 }
 
 export async function createPaymobOrder(input: CheckoutInput) {
   const [cartId, session] = await Promise.all([getMutableCartId(), getCurrentSession()]);
-  return createPaymobOrderFromCart(cartId, input, session?.user.id);
+  if (!session || session.user.banned) throw new CheckoutError("Sign in to place your order.");
+  return createPaymobOrderFromCart(cartId, input, session.user.id);
 }
 
 export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string) {
@@ -33,6 +35,18 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
   const reservationExpiresAt = paymentMethod === "PAYMOB" ? new Date(now.getTime() + PAYMENT_RESERVATION_MS) : null;
 
   const order = await prisma.$transaction(async (tx) => {
+    if (userId) {
+      const openOrders = await tx.order.count({
+        where: {
+          userId,
+          OR: [
+            { paymentMethod: "PAYMOB", paymentStatus: "PENDING", reservationExpiresAt: { gt: now } },
+            { paymentMethod: "COD", paymentStatus: "UNPAID", status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED"] } },
+          ],
+        },
+      });
+      if (openOrders >= 3) throw new CheckoutError("You already have several open orders. Complete or receive one before placing another.");
+    }
     const cart = await tx.cart.findUnique({
       where: { id: cartId },
       include: { items: { include: { product: { include: { images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } } }, variant: true } } },
@@ -116,10 +130,11 @@ export async function recordPaymobIntention(orderId: string, intentionOrderId: s
   });
 }
 
-export async function getOrderForConfirmation(orderNumber: string, token?: string) {
+export async function getOrderForConfirmation(orderNumber: string) {
   const session = await getCurrentSession();
+  if (!session || session.user.banned) return null;
   return prisma.order.findFirst({
-    where: { orderNumber, OR: [{ checkoutToken: token ?? "" }, ...(session?.user.id ? [{ userId: session.user.id }] : [])] },
+    where: { orderNumber, userId: session.user.id },
     include: { items: true },
   });
 }

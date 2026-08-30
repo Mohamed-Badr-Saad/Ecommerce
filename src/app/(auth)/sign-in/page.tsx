@@ -7,6 +7,6 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ callbackURL?: string }> }) {
   const { callbackURL } = await searchParams;
-  const safeCallback = safeInternalPath(callbackURL);
+  const safeCallback = safeInternalPath(callbackURL, "/shop");
   return <AuthForm mode="sign-in" callbackURL={safeCallback} />;
 }

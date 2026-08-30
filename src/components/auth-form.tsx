@@ -20,7 +20,7 @@ const modeContent = {
   reset: { title: "Choose a new password", description: "Use at least eight characters for your new password." },
 } as const;
 
-export function AuthForm({ mode, callbackURL = "/account", token, resetError }: { mode: Mode; callbackURL?: string; token?: string; resetError?: string }) {
+export function AuthForm({ mode, callbackURL = "/shop", token, resetError }: { mode: Mode; callbackURL?: string; token?: string; resetError?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
@@ -40,12 +40,16 @@ export function AuthForm({ mode, callbackURL = "/account", token, resetError }: 
       if (mode === "sign-in") {
         const result = await authClient.signIn.email({ email, password, rememberMe: true });
         if (result.error) throw new Error(result.error.message);
+        const claim = await fetch("/api/cart/claim", { method: "POST" });
+        if (!claim.ok) throw new Error("You are signed in, but we could not restore your bag. Refresh and try again.");
         router.push(safeInternalPath(callbackURL));
         router.refresh();
       } else if (mode === "sign-up") {
         if (password !== String(form.get("confirmPassword") ?? "")) throw new Error("Passwords do not match.");
         const result = await authClient.signUp.email({ name, email, password });
         if (result.error) throw new Error(result.error.message);
+        const claim = await fetch("/api/cart/claim", { method: "POST" });
+        if (!claim.ok) throw new Error("Your account was created, but we could not restore your bag. Refresh and try again.");
         router.push(safeInternalPath(callbackURL));
         router.refresh();
       } else if (mode === "forgot") {
@@ -87,8 +91,8 @@ export function AuthForm({ mode, callbackURL = "/account", token, resetError }: 
       </form>
 
       <div className="mt-6 flex flex-wrap justify-between gap-3 text-sm">
-        {mode === "sign-in" ? <><Link href="/forgot-password" className="text-muted-foreground hover:underline">Forgot password?</Link><Link href="/sign-up" className="font-medium hover:underline">Create an account</Link></> : null}
-        {mode === "sign-up" ? <p className="text-muted-foreground">Already registered? <Link href="/sign-in" className="font-medium text-foreground hover:underline">Sign in</Link></p> : null}
+        {mode === "sign-in" ? <><Link href="/forgot-password" className="text-muted-foreground hover:underline">Forgot password?</Link><Link href={`/sign-up?callbackURL=${encodeURIComponent(safeInternalPath(callbackURL, "/shop"))}`} className="font-medium hover:underline">Create an account</Link></> : null}
+        {mode === "sign-up" ? <p className="text-muted-foreground">Already registered? <Link href={`/sign-in?callbackURL=${encodeURIComponent(safeInternalPath(callbackURL, "/shop"))}`} className="font-medium text-foreground hover:underline">Sign in</Link></p> : null}
         {mode === "forgot" || mode === "reset" ? <Link href="/sign-in" className="font-medium hover:underline">Return to sign in</Link> : null}
         {mode === "reset" && resetError ? <Link href="/forgot-password" className="font-medium hover:underline">Request a new link</Link> : null}
       </div>

@@ -21,8 +21,13 @@ describe("seeded catalog queries", () => {
   });
 
   it("filters the customer shop by editorial collection", async () => {
-    const catalog = await getCatalog(parseCatalogQuery({ collection: "debut-edit", q: "suit" }));
-    expect(catalog.products.map((product) => product.slug)).toContain("suit");
+    const fixture = await prisma.product.findFirst({
+      where: { status: "ACTIVE", collections: { some: { isActive: true } } },
+      select: { slug: true, title: true, collections: { where: { isActive: true }, select: { slug: true }, take: 1 } },
+    });
+    expect(fixture).not.toBeNull();
+    const catalog = await getCatalog(parseCatalogQuery({ collection: fixture!.collections[0]!.slug, q: fixture!.title }));
+    expect(catalog.products.map((product) => product.slug)).toContain(fixture!.slug);
   });
 
   it("loads collection and product detail relations", async () => {

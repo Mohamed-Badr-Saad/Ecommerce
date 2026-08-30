@@ -6,10 +6,14 @@ import { checkoutSchema } from "@/lib/commerce";
 import { CheckoutError, createCodOrder, createPaymobOrder, getPaymobOrderForIntention, recordPaymobIntention } from "@/lib/orders";
 import { createPaymobIntention, egpToCents, PaymobError } from "@/lib/paymob";
 import { releasePaymobReservation } from "@/lib/reservations";
+import { getCurrentSession } from "@/lib/session";
 
 export type CheckoutState = { error?: string; fieldErrors?: Record<string, string[]> };
 
 export async function placeOrderAction(_state: CheckoutState, formData: FormData): Promise<CheckoutState> {
+  const session = await getCurrentSession();
+  if (!session) redirect("/sign-up?callbackURL=/checkout");
+  if (session.user.banned) redirect("/sign-in?error=ACCOUNT_UNAVAILABLE");
   const parsed = checkoutSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Check the highlighted delivery details.", fieldErrors: parsed.error.flatten().fieldErrors };
 
@@ -22,7 +26,7 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
       console.error("[checkout] COD order failed", { name: error instanceof Error ? error.name : "UnknownError", code });
       return { error: error instanceof CheckoutError ? error.message : "We could not place your order. Please try again." };
     }
-    redirect(`/order-confirmation/${result.orderNumber}?token=${result.checkoutToken}`);
+    redirect(`/order-confirmation/${result.orderNumber}`);
   }
 
   let reserved: Awaited<ReturnType<typeof createPaymobOrder>> | undefined;
@@ -40,7 +44,6 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
     const intention = await createPaymobIntention({
       amountCents: egpToCents(Number(order.total)),
       orderNumber: order.orderNumber,
-      checkoutToken: order.checkoutToken,
       customer: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone },
       address: parsed.data,
       items,

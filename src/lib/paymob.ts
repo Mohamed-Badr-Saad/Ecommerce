@@ -49,7 +49,6 @@ export type PaymobInquiryExpectation = {
 export type PaymobIntentionInput = {
   amountCents: number;
   orderNumber: string;
-  checkoutToken: string;
   customer: { firstName: string; lastName: string; email: string; phone: string };
   address: { apartment?: string | null; street: string; city: string; governorate: string; postalCode?: string | null };
   items: { name: string; amountCents: number; description?: string; quantity: number }[];
@@ -77,7 +76,6 @@ export async function createPaymobIntention(input: PaymobIntentionInput) {
   const callbackBaseUrl = config.callbackBaseUrl.replace(/\/$/, "");
   const returnUrl = new URL("/payment/return", callbackBaseUrl);
   returnUrl.searchParams.set("orderNumber", input.orderNumber);
-  returnUrl.searchParams.set("token", input.checkoutToken);
 
   const response = await fetch(`${PAYMOB_BASE_URL}/v1/intention/`, {
     method: "POST",
@@ -178,6 +176,17 @@ export function parseMatchingPaymobInquiryTransaction(value: unknown, expected: 
   return transaction;
 }
 
+export function normalizePaymobInquiryResponse(response: unknown) {
+  if (Array.isArray(response)) return response;
+  if (typeof response === "object" && response !== null) {
+    const record = response as Record<string, unknown>;
+    if (Array.isArray(record.results)) return record.results;
+    if (Array.isArray(record.transactions)) return record.transactions;
+    if (record.id != null && record.order != null) return [record];
+  }
+  throw new PaymobError("Paymob returned an unexpected transaction inquiry response.");
+}
+
 export async function inquirePaymobTransactions(providerOrderId: string) {
   const apiKey = z.string().min(1).parse(process.env.PAYMOB_API_KEY);
   const authResponse = await fetch(`${PAYMOB_BASE_URL}/api/auth/tokens`, {
@@ -197,14 +206,7 @@ export async function inquirePaymobTransactions(providerOrderId: string) {
     signal: AbortSignal.timeout(10_000),
   });
   if (!inquiryResponse.ok) throw new PaymobError("Paymob transaction inquiry failed.", inquiryResponse.status);
-  const response = await inquiryResponse.json();
-  if (Array.isArray(response)) return response as unknown[];
-  if (typeof response === "object" && response !== null) {
-    const record = response as Record<string, unknown>;
-    if (Array.isArray(record.results)) return record.results;
-    if (Array.isArray(record.transactions)) return record.transactions;
-  }
-  throw new PaymobError("Paymob returned an unexpected transaction inquiry response.");
+  return normalizePaymobInquiryResponse(await inquiryResponse.json());
 }
 
 export function egpToCents(value: number) {

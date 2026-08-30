@@ -63,7 +63,7 @@ Keep both the Next.js server and tunnel running. Put the hostname (without `http
 
 The app also sends these URLs per Intention, overriding the integration defaults for supported payment methods. The generated hostname changes when the quick tunnel restarts, so update `.env`, restart Next.js, and update Paymob each time.
 
-Pending Paymob inventory is reserved for 60 minutes. Expired stock is released lazily on storefront/cart traffic, and `/api/cron/release-reservations` is available for a scheduler when `CRON_SECRET` is configured.
+Pending Paymob inventory is reserved for 60 minutes. `/api/cron/release-reservations` releases expired stock in bounded batches when a scheduler calls it with `CRON_SECRET`; public storefront requests never run global cleanup work.
 
 The payment-return page also performs an authenticated Paymob transaction inquiry for an authorized pending order. This safely recovers a successful payment if a temporary tunnel or webhook callback was missed; redirect query parameters alone never mark an order paid.
 
@@ -71,7 +71,7 @@ The payment-return page also performs an authenticated Paymob transaction inquir
 
 Administrator access is enforced from the database role on every `/admin` request; the proxy cookie check is only an early unauthenticated redirect. Administrators can open `/admin` after signing out and back in so their refreshed session contains the current role.
 
-Image uploads use an admin-authenticated server route backed by the public Supabase `talie-catalog` bucket. Add the server-only `SUPABASE_SECRET_KEY` to enable drag-and-drop uploads; never expose that key with a `NEXT_PUBLIC_` prefix. Uploads accept up to six JPG, PNG, WebP, GIF, or AVIF files at 6 MB each and store alt text in the media library.
+Image uploads use an admin-authenticated token exchange backed by the public Supabase `talie-catalog` bucket. The browser uploads directly to the exact signed object path, avoiding Vercel's request-body limit; the secret key never reaches the browser. Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, and `SUPABASE_STORAGE_BUCKET` in Vercel. Uploads accept up to six JPG, PNG, WebP, GIF, or AVIF files, resize large still images to 2400 px, optimize them as WebP, and store dimensions and alt text in the media library.
 
 ## Brand system
 

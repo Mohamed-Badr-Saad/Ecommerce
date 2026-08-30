@@ -9,15 +9,16 @@ export const metadata = { title: "Checkout" };
 
 export default async function CheckoutPage() {
   const [cart, session] = await Promise.all([getCart(), getCurrentSession()]);
+  if (!session) redirect("/sign-up?callbackURL=/checkout");
   if (!cart.items.length) redirect("/cart");
   if (cart.items.some((item) => !item.available)) redirect("/cart");
-  const address = session ? await prisma.address.findFirst({ where: { userId: session.user.id }, orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] }) : null;
-  const names = session?.user.name.trim().split(/\s+/) ?? [];
+  const address = await prisma.address.findFirst({ where: { userId: session.user.id }, orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] });
+  const names = session.user.name.trim().split(/\s+/);
   const defaults = {
     firstName: address?.firstName ?? names[0] ?? "",
     lastName: address?.lastName ?? names.slice(1).join(" "),
-    email: session?.user.email ?? "",
-    phone: address?.phone ?? session?.user.phone ?? "",
+    email: session.user.email,
+    phone: address?.phone ?? session.user.phone ?? "",
     street: address?.street ?? "", apartment: address?.apartment ?? "", city: address?.city ?? "",
     governorate: address?.governorate ?? "", postalCode: address?.postalCode ?? "",
   };

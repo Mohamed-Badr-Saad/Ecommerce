@@ -5,17 +5,17 @@ import { Button } from "@/components/ui/button";
 import { getOrderForConfirmation } from "@/lib/orders";
 import { reconcilePaymobOrderPayment } from "@/lib/paymob-reconciliation";
 
-type Props = { searchParams: Promise<{ orderNumber?: string; token?: string }> };
+type Props = { searchParams: Promise<{ orderNumber?: string }> };
 
 export const metadata = { title: "Payment status" };
 
 export default async function PaymentReturnPage({ searchParams }: Props) {
-  const { orderNumber, token } = await searchParams;
-  let order = orderNumber ? await getOrderForConfirmation(orderNumber, token) : null;
+  const { orderNumber } = await searchParams;
+  let order = orderNumber ? await getOrderForConfirmation(orderNumber) : null;
   if (order?.paymentMethod === "PAYMOB" && order.paymentStatus === "PENDING") {
     try {
       await reconcilePaymobOrderPayment(order.id);
-      order = await getOrderForConfirmation(order.orderNumber, token);
+      order = await getOrderForConfirmation(order.orderNumber);
     } catch {
       // The signed webhook remains authoritative if the inquiry service is temporarily unavailable.
     }
@@ -40,7 +40,7 @@ export default async function PaymentReturnPage({ searchParams }: Props) {
               : "We are waiting for Paymob’s signed confirmation. Refresh this page in a few moments; the redirect itself never changes your order status."}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {order ? <Button asChild className="rounded-none"><Link href={`/order-confirmation/${order.orderNumber}?token=${order.checkoutToken}`}>View order</Link></Button> : null}
+          {order ? <Button asChild className="rounded-none"><Link href={`/order-confirmation/${order.orderNumber}`}>View order</Link></Button> : null}
           <Button asChild variant="outline" className="rounded-none"><Link href={failed ? "/shop" : "/account/orders"}>{failed ? "Return to shop" : "My orders"}</Link></Button>
         </div>
       </section>
