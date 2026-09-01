@@ -1,10 +1,10 @@
 import { Heart, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProductOptions } from "@/components/product-options";
+import { ProductImageGallery } from "@/components/product-image-gallery";
 import { toggleWishlistAction } from "@/app/account/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProduct(slug);
   if (!product) notFound();
   const inStock = product.stockQuantity > 0;
+  const galleryImages = (product.images.length ? product.images : [{ id: "placeholder", url: "/products/dress-mauve.svg", altText: product.title }]).map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? product.title }));
   return (
     <main className="mx-auto max-w-[1600px] px-5 py-8 sm:px-8 lg:px-12 lg:py-14">
       <nav aria-label="Breadcrumb" className="mb-7 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">
@@ -40,15 +41,7 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(23rem,0.85fr)] lg:gap-16">
-        <section aria-label="Product imagery" className="grid gap-3 sm:grid-cols-2">
-          {(product.images.length ? product.images : [{ id: "placeholder", url: "/products/dress-mauve.svg", altText: product.title }]).map((image, index) => (
-            <div key={image.id} className={`relative overflow-hidden bg-muted ${product.images.length === 1 || index === 0 ? "sm:col-span-2" : ""}`}>
-              <div className="relative aspect-[3/4]">
-                <Image src={image.url} alt={image.altText ?? product.title} fill priority={index === 0} sizes="(min-width: 1024px) 58vw, 100vw" className="object-cover" />
-              </div>
-            </div>
-          ))}
-        </section>
+        <ProductImageGallery images={galleryImages} productTitle={product.title} />
 
         <section className="lg:sticky lg:top-32 lg:self-start">
           <div className="flex items-start justify-between gap-5">

@@ -76,7 +76,7 @@ export async function SiteHeader() {
 
         <div className="flex items-center justify-end gap-0.5">
           <Button asChild variant="ghost" size="icon" aria-label="Search" className="hidden sm:inline-flex"><Link href="/shop"><Search /></Link></Button>
-          <Button asChild variant="ghost" size="icon" aria-label="Account"><Link href="/account"><UserRound /></Link></Button>
+          <Button asChild variant="ghost" size="icon" aria-label="Account"><Link href={session ? "/account" : "/sign-in?callbackURL=/shop"}><UserRound /></Link></Button>
           <Button asChild variant="ghost" size="icon" aria-label="Wishlist" className="hidden md:inline-flex"><Link href="/account/wishlist"><Heart /></Link></Button>
           <Button asChild variant="ghost" size="icon" className="relative"><Link href="/cart" aria-label={`Shopping bag, ${cart.count} items`}><ShoppingBag />
             <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[0.6rem] text-primary-foreground">{cart.count > 99 ? "99+" : cart.count}</span>

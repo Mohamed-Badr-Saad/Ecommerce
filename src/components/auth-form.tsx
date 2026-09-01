@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,6 @@ const modeContent = {
 } as const;
 
 export function AuthForm({ mode, callbackURL = "/shop", token, resetError }: { mode: Mode; callbackURL?: string; token?: string; resetError?: string }) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
@@ -40,18 +38,14 @@ export function AuthForm({ mode, callbackURL = "/shop", token, resetError }: { m
       if (mode === "sign-in") {
         const result = await authClient.signIn.email({ email, password, rememberMe: true });
         if (result.error) throw new Error(result.error.message);
-        const claim = await fetch("/api/cart/claim", { method: "POST" });
-        if (!claim.ok) throw new Error("You are signed in, but we could not restore your bag. Refresh and try again.");
-        router.push(safeInternalPath(callbackURL));
-        router.refresh();
+        await fetch("/api/cart/claim", { method: "POST" }).catch(() => null);
+        window.location.assign(safeInternalPath(callbackURL));
       } else if (mode === "sign-up") {
         if (password !== String(form.get("confirmPassword") ?? "")) throw new Error("Passwords do not match.");
         const result = await authClient.signUp.email({ name, email, password });
         if (result.error) throw new Error(result.error.message);
-        const claim = await fetch("/api/cart/claim", { method: "POST" });
-        if (!claim.ok) throw new Error("Your account was created, but we could not restore your bag. Refresh and try again.");
-        router.push(safeInternalPath(callbackURL));
-        router.refresh();
+        await fetch("/api/cart/claim", { method: "POST" }).catch(() => null);
+        window.location.assign(safeInternalPath(callbackURL));
       } else if (mode === "forgot") {
         const result = await authClient.requestPasswordReset({ email, redirectTo: `${window.location.origin}/reset-password` });
         if (result.error) throw new Error(result.error.message);

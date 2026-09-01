@@ -58,7 +58,7 @@ export async function getAdminCatalog() {
       orderBy: { updatedAt: "desc" },
       include: { category: { select: { name: true } }, variants: { select: { id: true, stockQuantity: true } }, images: { where: { isPrimary: true }, take: 1 } },
     }),
-    prisma.category.findMany({ orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
+    prisma.category.findMany({ orderBy: [{ displayOrder: "asc" }, { name: "asc" }], include: { _count: { select: { products: true, children: true } } } }),
     prisma.productTag.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { products: true } } } }),
     prisma.productCollection.findMany({ orderBy: [{ displayOrder: "asc" }, { name: "asc" }], include: { _count: { select: { products: true } } } }),
   ]);
@@ -70,10 +70,11 @@ export async function getAdminProduct(productId: string) {
     where: { id: productId },
     include: {
       category: true,
-      variants: { orderBy: { displayOrder: "asc" } },
+      variants: { orderBy: { displayOrder: "asc" }, include: { _count: { select: { orderItems: true } } } },
       images: { orderBy: { displayOrder: "asc" } },
       tags: { orderBy: { name: "asc" } },
       collections: { orderBy: { displayOrder: "asc" } },
+      _count: { select: { orderItems: true } },
     },
   });
 }

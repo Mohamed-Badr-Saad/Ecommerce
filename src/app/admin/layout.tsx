@@ -30,9 +30,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Talié operations</p><h1 className="mt-2 font-heading text-3xl">Admin studio</h1><p className="mt-2 text-sm text-muted-foreground">{session.user.name}</p><Badge variant="outline" className="mt-3 rounded-none">{adminRole.toLowerCase().replaceAll("_", " ")}</Badge></div>
             <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><Store className="size-4" aria-hidden="true" /> Storefront</Link>
           </div>
-          <nav aria-label="Admin navigation" className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+          <nav aria-label="Admin navigation" className="-mx-5 mt-7 flex snap-x gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:px-0 lg:flex-col lg:overflow-visible lg:pb-0">
             {navigation.map(({ label, href, icon: Icon, available }) => available ? (
-              <Link key={label} href={href} className="flex items-center gap-3 bg-primary px-3 py-2.5 text-sm text-primary-foreground"><Icon className="size-4" aria-hidden="true" />{label}</Link>
+              <Link key={label} href={href} className="flex shrink-0 snap-start items-center gap-3 bg-primary px-3 py-2.5 text-sm text-primary-foreground lg:w-full"><Icon className="size-4" aria-hidden="true" />{label}</Link>
             ) : (
               <span key={label} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground" aria-disabled="true"><Icon className="size-4" aria-hidden="true" />{label}<span className="ml-auto text-[0.6rem] uppercase tracking-wider">Soon</span></span>
             ))}

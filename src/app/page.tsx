@@ -2,15 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ProductCard } from "@/components/product-card";
+import { HomepageBanner } from "@/components/homepage-banner";
 import { SectionHeading } from "@/components/section-heading";
 import { Button } from "@/components/ui/button";
 import { getHomeCatalog } from "@/lib/catalog";
+import { getActiveBanners } from "@/lib/admin-content";
 
 export default async function Home() {
-  const { collections, products } = await getHomeCatalog();
+  const [{ collections, products }, banners] = await Promise.all([getHomeCatalog(), getActiveBanners()]);
   return (
     <main>
-      <section className="mx-auto grid min-h-[calc(100svh-8rem)] max-w-[1600px] lg:grid-cols-[0.92fr_1.08fr]">
+      {banners.length ? <HomepageBanner banners={banners} /> : <section className="mx-auto grid min-h-[calc(100svh-8rem)] max-w-[1600px] lg:grid-cols-[0.92fr_1.08fr]">
         <div className="flex items-center bg-secondary px-6 py-16 sm:px-10 lg:px-16 xl:px-24">
           <div className="max-w-xl">
             <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-brand-burgundy/75">
@@ -60,7 +62,7 @@ export default async function Home() {
             The everyday layer · Look 01
           </p>
         </div>
-      </section>
+      </section>}
 
       <section id="collections" className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
         <SectionHeading

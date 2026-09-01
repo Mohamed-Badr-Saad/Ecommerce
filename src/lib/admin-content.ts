@@ -3,6 +3,11 @@ import { z } from "zod";
 import { prisma } from "./prisma";
 import { storefrontImageUrlSchema } from "./media";
 
+const optionalBannerDate = z.preprocess(
+  (value) => value === "" || value == null ? null : value,
+  z.coerce.date().nullable(),
+);
+
 export const bannerInputSchema = z.object({
   title: z.string().trim().min(2).max(140),
   subtitle: z.string().trim().max(300).optional(),
@@ -11,7 +16,12 @@ export const bannerInputSchema = z.object({
   ctaLink: z.string().trim().startsWith("/").optional().or(z.literal("")),
   displayOrder: z.coerce.number().int().nonnegative().default(0),
   isActive: z.boolean().default(false),
-});
+  startDate: optionalBannerDate,
+  endDate: optionalBannerDate,
+}).refine(
+  ({ startDate, endDate }) => !startDate || !endDate || endDate > startDate,
+  { message: "The end date must be after the start date.", path: ["endDate"] },
+);
 
 export const policyInputSchema = z.object({
   title: z.string().trim().min(2).max(140),
@@ -36,4 +46,19 @@ export async function getAdminContent() {
     prisma.policyPage.findMany({ orderBy: { type: "asc" } }),
   ]);
   return { media, banners, policies };
+}
+
+export async function getActiveBanners() {
+  const now = new Date();
+  return prisma.banner.findMany({
+    where: {
+      isActive: true,
+      AND: [
+        { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+        { OR: [{ endDate: null }, { endDate: { gt: now } }] },
+      ],
+    },
+    orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
+    select: { id: true, title: true, subtitle: true, image: true, ctaText: true, ctaLink: true },
+  });
 }

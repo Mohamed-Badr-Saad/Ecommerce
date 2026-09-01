@@ -20,6 +20,7 @@ describe("admin content validation", () => {
     expect(bannerInputSchema.safeParse({ title: "Suit", image: "https://i.pinimg.com/example.jpg", ctaLink: "/shop" }).success).toBe(true);
     expect(bannerInputSchema.safeParse({ title: "Debut", image: "javascript:alert(1)", ctaLink: "https://outside.test" }).success).toBe(false);
     expect(bannerInputSchema.safeParse({ title: "Debut", image: "https://unapproved.example/image.jpg", ctaLink: "/shop" }).success).toBe(false);
+    expect(bannerInputSchema.safeParse({ title: "Scheduled", image: "/editorial/hero.svg", startDate: "2026-09-02T10:00", endDate: "2026-09-01T10:00" }).success).toBe(false);
     expect(policyInputSchema.safeParse({ title: "Returns", content: "A clear policy with enough detail for customers." }).success).toBe(true);
   });
 });
