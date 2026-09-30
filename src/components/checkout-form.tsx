@@ -14,7 +14,7 @@ import { Textarea } from "./ui/textarea";
 
 type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "street" | "apartment" | "city" | "governorate" | "postalCode", string>>;
 
-export function CheckoutForm({ subtotal, originalSubtotal, discount, defaults = {} }: { subtotal: number; originalSubtotal: number; discount: number; defaults?: Defaults }) {
+export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {} }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults }) {
   const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
   const [paymentMethod, setPaymentMethod] = useState<"PAYMOB" | "COD">("PAYMOB");
@@ -70,7 +70,8 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, defaults = 
         </fieldset>
         <dl className="mt-7 space-y-4 border-y border-border py-5 text-sm">
           <div className="flex justify-between"><dt>Merchandise</dt><dd>{formatEgp(originalSubtotal)}</dd></div>
-          {discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(discount)}</dd></div> : null}
+          {discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Sale savings</dt><dd>−{formatEgp(discount)}</dd></div> : null}
+          {coupon ? <div className="flex justify-between text-emerald-700"><dt>Code {coupon.code}</dt><dd>−{formatEgp(coupon.amount)}</dd></div> : null}
           <div className="flex justify-between"><dt>Delivery</dt><dd>{estimatedShipping === null ? "Calculated from address" : estimatedShipping === 0 ? "Complimentary" : formatEgp(estimatedShipping)}</dd></div>
           <div className="flex justify-between font-medium"><dt>Total</dt><dd>{formatEgp(subtotal + (estimatedShipping ?? 0))}</dd></div>
         </dl>

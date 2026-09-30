@@ -49,6 +49,10 @@ export async function releasePaymobReservation(orderId: string, now = new Date()
         });
       }
     }
+    if (options.restoreCartId) {
+      const order = await tx.order.findUnique({ where: { id: orderId }, select: { discountCodeId: true } });
+      if (order?.discountCodeId) await tx.cart.update({ where: { id: options.restoreCartId }, data: { discountCodeId: order.discountCodeId } });
+    }
     await tx.payment.updateMany({
       where: { orderId, provider: "PAYMOB", status: "PENDING" },
       data: {

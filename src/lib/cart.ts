@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 
 import { CART_MAX_QUANTITY, calculateMerchandiseTotals, cartQuantitySchema } from "./commerce";
+import { attachDiscountCode, detachDiscountCode, evaluateDiscountRecord } from "./discount-codes";
 import { prisma } from "./prisma";
 import { getCurrentSession } from "./session";
 
@@ -9,6 +10,7 @@ const CART_COOKIE = "talie_cart";
 const GUEST_CART_DAYS = 30;
 
 const cartInclude = {
+  discountCode: true,
   items: {
     orderBy: { createdAt: "asc" as const },
     include: {
@@ -25,13 +27,13 @@ async function identity() {
 
 async function findCart() {
   const { userId, token } = await identity();
-  if (userId) return prisma.cart.findUnique({ where: { userId }, include: cartInclude });
-  if (token) return prisma.cart.findUnique({ where: { sessionToken: token }, include: cartInclude });
-  return null;
+  if (userId) return { userId, cart: await prisma.cart.findUnique({ where: { userId }, include: cartInclude }) };
+  if (token) return { userId, cart: await prisma.cart.findUnique({ where: { sessionToken: token }, include: cartInclude }) };
+  return { userId, cart: null };
 }
 
 export async function getCart() {
-  const cart = await findCart();
+  const { cart, userId } = await findCart();
   const items = (cart?.items ?? []).map((item) => {
     const price = Number(item.variant?.price ?? item.product.price);
     const compareAtPrice = item.product.compareAtPrice ? Number(item.product.compareAtPrice) : null;
@@ -54,7 +56,17 @@ export async function getCart() {
     };
   });
   const totals = calculateMerchandiseTotals(items);
-  return { id: cart?.id, items, ...totals, count: items.reduce((total, item) => total + item.quantity, 0) };
+  const coupon = cart?.discountCode && items.length ? await evaluateDiscountRecord(prisma, cart.discountCode, totals.subtotal, userId) : null;
+  const couponDiscount = coupon?.ok ? coupon.amount : 0;
+  return {
+    id: cart?.id,
+    items,
+    ...totals,
+    coupon: coupon ? { code: coupon.code, amount: couponDiscount, error: coupon.ok ? null : coupon.reason } : null,
+    couponDiscount,
+    amountDue: Math.max(0, totals.subtotal - couponDiscount),
+    count: items.reduce((total, item) => total + item.quantity, 0),
+  };
 }
 
 async function mutableCartId() {
@@ -78,6 +90,7 @@ async function mutableCartId() {
               create: { cartId: cart.id, productId: item.productId, variantId: item.variantId, lineKey: item.lineKey, quantity: item.quantity },
             });
           }
+          if (guest.discountCodeId && !cart.discountCodeId) await tx.cart.update({ where: { id: cart.id }, data: { discountCodeId: guest.discountCodeId } });
           await tx.cart.delete({ where: { id: guest.id } });
         });
       }
@@ -134,4 +147,16 @@ export async function removeCartItem(itemId: string) {
 
 export async function getMutableCartId() {
   return mutableCartId();
+}
+
+export async function applyCartDiscountCode(rawCode: unknown) {
+  const cartId = await mutableCartId();
+  const session = await getCurrentSession();
+  const cart = await getCart();
+  if (!cart.items.length) throw new Error("Add something to your bag before applying a code.");
+  return attachDiscountCode(cartId, rawCode, cart.subtotal, session?.user.id);
+}
+
+export async function removeCartDiscountCode() {
+  await detachDiscountCode(await mutableCartId());
 }

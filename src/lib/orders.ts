@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "../generated/prisma/client";
 import { calculateMerchandiseTotals, calculateShipping, type CheckoutInput } from "./commerce";
 import { getMutableCartId } from "./cart";
+import { evaluateDiscountRecord } from "./discount-codes";
 import { prisma } from "./prisma";
 import { PAYMENT_RESERVATION_MS } from "./reservations";
 import { getCurrentSession } from "./session";
@@ -49,7 +50,7 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
     }
     const cart = await tx.cart.findUnique({
       where: { id: cartId },
-      include: { items: { include: { product: { include: { images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } } }, variant: true } } },
+      include: { discountCode: true, items: { include: { product: { include: { images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } } }, variant: true } } },
     });
     if (!cart?.items.length) throw new CheckoutError("Your bag is empty.");
 
@@ -60,8 +61,15 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
       return { item, price, compareAtPrice: item.product.compareAtPrice, total: price.mul(item.quantity) };
     });
     const merchandise = calculateMerchandiseTotals(lines.map((line) => ({ price: Number(line.price), compareAtPrice: line.compareAtPrice ? Number(line.compareAtPrice) : null, quantity: line.item.quantity })));
-    const shippingCost = calculateShipping(merchandise.subtotal, input.governorate);
-    const total = merchandise.subtotal + shippingCost;
+    let couponDiscount = 0;
+    if (cart.discountCode) {
+      const coupon = await evaluateDiscountRecord(tx, cart.discountCode, merchandise.subtotal, userId, now);
+      if (!coupon.ok) throw new CheckoutError(`Discount code ${coupon.code}: ${coupon.reason} Remove it from your bag to continue.`);
+      couponDiscount = coupon.amount;
+    }
+    const amountDue = Math.max(0, merchandise.subtotal - couponDiscount);
+    const shippingCost = calculateShipping(amountDue, input.governorate);
+    const total = amountDue + shippingCost;
 
     for (const { item } of lines) {
       if (item.variantId) {
@@ -84,7 +92,10 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
         reservationExpiresAt,
         subtotal: merchandise.originalSubtotal,
         shippingCost,
-        discount: merchandise.discount,
+        discount: merchandise.discount + couponDiscount,
+        couponDiscount,
+        discountCodeId: couponDiscount > 0 ? cart.discountCode?.id : null,
+        discountCode: couponDiscount > 0 ? cart.discountCode?.code : null,
         total,
         customerEmail: input.email,
         customerPhone: input.phone,
@@ -110,6 +121,7 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
       },
     });
     await tx.cartItem.deleteMany({ where: { cartId } });
+    if (cart.discountCodeId) await tx.cart.update({ where: { id: cartId }, data: { discountCodeId: null } });
     return saved;
   }, { isolationLevel: "Serializable" });
 

@@ -34,12 +34,22 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
   try {
     reserved = await createPaymobOrder(parsed.data);
     const order = await getPaymobOrderForIntention(reserved.orderId);
-    const items = order.items.map((item) => ({
-      name: item.title,
-      amountCents: egpToCents(Number(item.price)),
-      description: item.variantTitle || item.title,
-      quantity: item.quantity,
-    }));
+    // Paymob requires line items to add up to the intention amount, so a coupon
+    // collapses merchandise into one discounted line instead of per-item prices.
+    const couponDiscount = Number(order.couponDiscount);
+    const items = couponDiscount > 0
+      ? [{
+        name: `Talié order ${order.orderNumber}`,
+        amountCents: egpToCents(Number(order.total) - Number(order.shippingCost)),
+        description: `${order.items.length} item(s), code ${order.discountCode ?? ""}`.trim(),
+        quantity: 1,
+      }]
+      : order.items.map((item) => ({
+        name: item.title,
+        amountCents: egpToCents(Number(item.price)),
+        description: item.variantTitle || item.title,
+        quantity: item.quantity,
+      }));
     if (Number(order.shippingCost) > 0) items.push({ name: "Delivery", amountCents: egpToCents(Number(order.shippingCost)), description: "Talié delivery", quantity: 1 });
     const intention = await createPaymobIntention({
       amountCents: egpToCents(Number(order.total)),

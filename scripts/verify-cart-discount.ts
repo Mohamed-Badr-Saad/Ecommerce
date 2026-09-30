@@ -28,7 +28,7 @@ try {
   await page.getByText("Added to your bag.").waitFor();
   await page.getByRole("link", { name: "Shopping bag, 1 items" }).click();
   await page.getByRole("heading", { name: "Order summary" }).waitFor();
-  await page.getByText("Total discount").waitFor();
+  await page.getByText("Sale savings").waitFor();
   await page.getByText("EGP 300", { exact: false }).waitFor();
 
   await page.getByRole("button", { name: "Increase Lina Textured Kimono quantity" }).click();
@@ -39,7 +39,7 @@ try {
   await page.screenshot({ path: path.join(artifacts, "cart-quantity-discount.png"), fullPage: true });
 
   await page.getByRole("link", { name: "Continue to checkout" }).click();
-  await page.getByText("Total discount").waitFor();
+  await page.getByText("Sale savings").waitFor();
   await page.getByLabel("First name").fill("Discount");
   await page.getByLabel("Last name").fill("Checkout");
   await page.getByLabel("Email address").fill(email);

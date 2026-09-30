@@ -44,7 +44,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
           <div className="flex justify-between"><dt>Payment</dt><dd>{order.paymentMethod === "PAYMOB" ? "Online · Paymob" : "Cash on delivery"}</dd></div>
           <div className="flex justify-between"><dt>Payment status</dt><dd className="capitalize">{order.paymentStatus.toLowerCase()}</dd></div>
           <div className="flex justify-between"><dt>Merchandise</dt><dd>{formatEgp(Number(order.subtotal))}</dd></div>
-          {Number(order.discount) > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount</dt><dd>−{formatEgp(Number(order.discount))}</dd></div> : null}
+          {Number(order.discount) > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount{order.discountCode ? ` (incl. code ${order.discountCode})` : ""}</dt><dd>−{formatEgp(Number(order.discount))}</dd></div> : null}
           <div className="flex justify-between"><dt>Delivery</dt><dd>{Number(order.shippingCost) ? formatEgp(Number(order.shippingCost)) : "Complimentary"}</dd></div>
           <div className="flex justify-between text-base font-medium"><dt>Total</dt><dd>{formatEgp(Number(order.total))}</dd></div>
         </dl>

@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Images, LayoutDashboard, PackageSearch, Settings, ShoppingBag, Star, Store, UsersRound } from "lucide-react";
+import { Activity, BarChart3, Images, LayoutDashboard, PackageSearch, Settings, ShoppingBag, Star, Store, TicketPercent, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { SignOutButton } from "@/components/sign-out-button";
@@ -10,6 +10,7 @@ const navigation = [
   { label: "Catalog", href: "/admin/catalog", icon: PackageSearch, available: true },
   { label: "Content", href: "/admin/content", icon: Images, available: true },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag, available: true },
+  { label: "Discounts", href: "/admin/discounts", icon: TicketPercent, available: true },
   { label: "Customers", href: "/admin/customers", icon: UsersRound, available: true },
   { label: "Reviews", href: "/admin/reviews", icon: Star, available: true },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3, available: true },
