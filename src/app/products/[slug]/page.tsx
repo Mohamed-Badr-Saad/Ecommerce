@@ -61,7 +61,7 @@ export default async function ProductPage({ params }: Props) {
           <Separator className="my-8" />
           <div className="grid gap-5 text-sm">
             <div className="flex gap-3"><Truck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Egypt-wide delivery</p><p className="mt-1 text-muted-foreground">Shipping rates are confirmed at checkout.</p></div></div>
-            <div className="flex gap-3"><RotateCcw className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Considered returns</p><p className="mt-1 text-muted-foreground">Contact Talié with your order number if a piece is not right for you.</p></div></div>
+            <div className="flex gap-3"><RotateCcw className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Easy returns</p><p className="mt-1 text-muted-foreground">Not the right fit? Contact us with your order number and we’ll help.</p></div></div>
             <div className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Secure shopping</p><p className="mt-1 text-muted-foreground">Pay securely by card with Paymob or choose cash on delivery.</p></div></div>
           </div>
         </section>

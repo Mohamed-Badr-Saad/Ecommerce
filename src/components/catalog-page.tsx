@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { getCatalog, type CatalogQuery } from "@/lib/catalog";
 import Link from "next/link";
 
+const sortLabels: Record<string, string> = { newest: "newest", "price-asc": "price: low to high", "price-desc": "price: high to low", name: "name (A–Z)" };
+
 export async function CatalogPage({ query, pathname, collectionSlug }: { query: CatalogQuery; pathname: string; collectionSlug?: string }) {
   let catalog = await getCatalog(query, collectionSlug);
   const safePage = Math.min(query.page, catalog.pageCount);
@@ -18,8 +20,8 @@ export async function CatalogPage({ query, pathname, collectionSlug }: { query: 
       <CatalogControls query={effectiveQuery} categories={catalog.categories} collections={collectionSlug ? [] : catalog.collections} colors={catalog.colors} sizes={catalog.sizes} pathname={pathname} />
       <div className="min-w-0">
         <div className="mb-7 flex min-w-0 items-center justify-between gap-4 border-b border-border pb-4 text-sm text-muted-foreground">
-          <p>{catalog.total} {catalog.total === 1 ? "piece" : "pieces"}</p>
-          <p className="truncate text-right capitalize">Sorted by {effectiveQuery.sort.replaceAll("-", " ")}</p>
+          <p>{catalog.total} {catalog.total === 1 ? "product" : "products"}</p>
+          <p className="truncate text-right">Sorted by {sortLabels[effectiveQuery.sort] ?? "newest"}</p>
         </div>
         {catalog.products.length ? (
           <>
@@ -31,9 +33,9 @@ export async function CatalogPage({ query, pathname, collectionSlug }: { query: 
         ) : (
           <div className="flex min-h-96 flex-col items-center justify-center border border-border bg-card px-6 text-center">
             <PackageSearch className="size-9 text-primary" />
-            <h2 className="mt-5 font-heading text-3xl">No pieces found</h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Try clearing a filter or searching for a different style.</p>
-            <Button asChild variant="outline" className="mt-6 rounded-none"><Link href={pathname}>View the full edit</Link></Button>
+            <h2 className="mt-5 font-heading text-3xl">No products match</h2>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Try removing a filter or searching for something else.</p>
+            <Button asChild variant="outline" className="mt-6 rounded-none"><Link href={pathname}>Show all products</Link></Button>
           </div>
         )}
       </div>

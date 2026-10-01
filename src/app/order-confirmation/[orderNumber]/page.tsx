@@ -28,7 +28,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
     : paid
       ? `We received the online payment of ${formatEgp(Number(order.total))} for order ${order.orderNumber}.`
       : pendingOnline
-        ? `Order ${order.orderNumber} remains reserved while we wait for Paymob’s signed confirmation.`
+        ? `We’re confirming your payment for order ${order.orderNumber}. Your items are reserved in the meantime.`
         : `We received order ${order.orderNumber}. Payment of ${formatEgp(Number(order.total))} is due in cash on delivery.`;
 
   return (
@@ -47,9 +47,9 @@ export default async function OrderConfirmationPage({ params }: Props) {
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between"><dt>Payment</dt><dd>{order.paymentMethod === "PAYMOB" ? "Online · Paymob" : "Cash on delivery"}</dd></div>
           <div className="flex justify-between"><dt>Payment status</dt><dd className="capitalize">{order.paymentStatus.toLowerCase()}</dd></div>
-          <div className="flex justify-between"><dt>Merchandise</dt><dd>{formatEgp(Number(order.subtotal))}</dd></div>
+          <div className="flex justify-between"><dt>Items</dt><dd>{formatEgp(Number(order.subtotal))}</dd></div>
           {Number(order.discount) > 0 ? <div className="flex justify-between text-emerald-700"><dt>Total discount{order.discountCode ? ` (incl. code ${order.discountCode})` : ""}</dt><dd>−{formatEgp(Number(order.discount))}</dd></div> : null}
-          <div className="flex justify-between"><dt>Delivery</dt><dd>{Number(order.shippingCost) ? formatEgp(Number(order.shippingCost)) : "Complimentary"}</dd></div>
+          <div className="flex justify-between"><dt>Delivery</dt><dd>{Number(order.shippingCost) ? formatEgp(Number(order.shippingCost)) : "Free"}</dd></div>
           <div className="flex justify-between text-base font-medium"><dt>Total</dt><dd>{formatEgp(Number(order.total))}</dd></div>
         </dl>
       </div>

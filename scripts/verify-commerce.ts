@@ -54,7 +54,7 @@ try {
   await page.setViewportSize({ width: 500, height: 900 });
   await page.screenshot({ path: path.join(artifacts, "checkout-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByRole("button", { name: "Place COD order" }).click();
+  await page.getByRole("button", { name: "Place order — pay on delivery" }).click();
   await page.getByText("Order confirmed").waitFor();
   const match = page.url().match(/order-confirmation\/([^?]+)/);
   orderNumber = match?.[1];

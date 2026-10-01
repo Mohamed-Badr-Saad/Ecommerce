@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { logAdminActivity } from "@/lib/admin";
 import { bannerInputSchema, feedbackInputSchema, policyInputSchema } from "@/lib/admin-content";
 import { storefrontImageUrlSchema } from "@/lib/media";
+import { addAnnouncement, deleteAnnouncement, toggleAnnouncement, updateAnnouncement } from "@/lib/announcements";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session";
 import { getSupabaseAdminClient, supabaseStorageBucket } from "@/lib/supabase-admin";
@@ -138,4 +139,46 @@ export async function deleteFeedbackAction(feedbackId: string) {
   const feedback = await prisma.customerFeedback.delete({ where: { id: feedbackId } });
   await logAdminActivity(session.user.id, { action: "deleted customer feedback", entityType: "customer_feedback", entityId: feedback.id });
   refreshFeedback();
+}
+
+function announcementForm(formData: FormData) {
+  return {
+    text: String(formData.get("text") ?? ""),
+    link: String(formData.get("link") ?? ""),
+    position: formData.get("position") || 0,
+    isActive: formData.get("isActive") === "on",
+  };
+}
+
+function refreshAnnouncements() {
+  revalidatePath("/admin/content");
+  revalidatePath("/", "layout");
+}
+
+export async function createAnnouncementAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const created = await addAnnouncement(announcementForm(formData));
+  await logAdminActivity(session.user.id, { action: "added announcement", entityType: "announcement", entityId: created.id, details: { text: created.text } });
+  refreshAnnouncements();
+}
+
+export async function updateAnnouncementAction(announcementId: string, formData: FormData) {
+  const session = await requireAdminSession();
+  await updateAnnouncement(announcementId, announcementForm(formData));
+  await logAdminActivity(session.user.id, { action: "updated announcement", entityType: "announcement", entityId: announcementId });
+  refreshAnnouncements();
+}
+
+export async function toggleAnnouncementAction(announcementId: string) {
+  const session = await requireAdminSession();
+  const isActive = await toggleAnnouncement(announcementId);
+  await logAdminActivity(session.user.id, { action: isActive ? "showed announcement" : "hid announcement", entityType: "announcement", entityId: announcementId });
+  refreshAnnouncements();
+}
+
+export async function deleteAnnouncementAction(announcementId: string) {
+  const session = await requireAdminSession();
+  await deleteAnnouncement(announcementId);
+  await logAdminActivity(session.user.id, { action: "deleted announcement", entityType: "announcement", entityId: announcementId });
+  refreshAnnouncements();
 }

@@ -50,7 +50,7 @@ try {
   await page.getByRole("option", { name: "Giza" }).click();
   await page.getByLabel("Cash on delivery").check();
   await page.screenshot({ path: path.join(artifacts, "checkout-discount.png"), fullPage: true });
-  await page.getByRole("button", { name: "Place COD order" }).click();
+  await page.getByRole("button", { name: "Place order — pay on delivery" }).click();
   await page.getByText("Order confirmed", { exact: true }).waitFor();
 
   orderNumber = page.url().match(/order-confirmation\/([^?]+)/)?.[1];

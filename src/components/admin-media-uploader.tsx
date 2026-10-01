@@ -4,9 +4,20 @@ import { ImageIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
+import { ImageCropDialog, type CropPresetName } from "./image-crop-dialog";
+
 type UploadedMedia = { id: string; url: string; altText?: string | null; width?: number | null; height?: number | null };
 type PreparedImage = { file: File; width?: number; height?: number };
-type Props = { enabled: boolean; fieldName?: string; label?: string; multiple?: boolean; defaultAltText?: string; maxFiles?: number };
+type Props = {
+  enabled: boolean;
+  fieldName?: string;
+  label?: string;
+  multiple?: boolean;
+  defaultAltText?: string;
+  maxFiles?: number;
+  /** Opens the crop & device-preview step for every chosen image before it uploads. */
+  crop?: CropPresetName;
+};
 
 const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 const maxUploadBytes = 6 * 1024 * 1024;
@@ -41,7 +52,7 @@ async function prepareImage(file: File): Promise<PreparedImage> {
   return { file: new File([blob], `${stem}.webp`, { type: "image/webp" }), width, height };
 }
 
-export function AdminMediaUploader({ enabled, fieldName, label = "Images", multiple = true, defaultAltText = "", maxFiles = multiple ? 6 : 1 }: Props) {
+export function AdminMediaUploader({ enabled, fieldName, label = "Images", multiple = true, defaultAltText = "", maxFiles = multiple ? 6 : 1, crop }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [altText, setAltText] = useState(defaultAltText);
@@ -49,12 +60,42 @@ export function AdminMediaUploader({ enabled, fieldName, label = "Images", multi
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [media, setMedia] = useState<UploadedMedia[]>([]);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [cropped, setCropped] = useState<File[]>([]);
+  const [cropTotal, setCropTotal] = useState(0);
   if (!enabled) return <p className="border border-dashed p-4 text-sm text-muted-foreground">Add the server-only Supabase secret key and public Supabase variables in Vercel to enable image uploads.</p>;
 
-  async function upload(selected: File[]) {
-    if (!selected.length || uploading) return;
+  function chooseFiles(selected: File[]) {
+    if (!selected.length || uploading || cropQueue.length) return;
     const files = selected.slice(0, Math.max(0, maxFiles - media.length));
     if (!files.length) return;
+    // Animated GIFs can't be cropped without losing the animation, so they skip that step.
+    const croppable = crop ? files.filter((file) => file.type !== "image/gif") : [];
+    if (!croppable.length) return void upload(files);
+    setCropped(files.filter((file) => file.type === "image/gif"));
+    setCropQueue(croppable);
+    setCropTotal(croppable.length);
+  }
+
+  function finishCropStep(file: File | null) {
+    const done = file ? [...cropped, file] : cropped;
+    const remaining = cropQueue.slice(1);
+    setCropQueue(remaining);
+    setCropped(done);
+    if (!remaining.length) {
+      setCropped([]);
+      if (done.length) void upload(done);
+    }
+  }
+
+  function cancelCropStep() {
+    setCropQueue([]);
+    setCropped([]);
+    setMessage("Upload cancelled.");
+  }
+
+  async function upload(files: File[]) {
+    if (!files.length || uploading) return;
     setUploading(true);
     setMessage("Optimizing images…");
     try {
@@ -100,19 +141,30 @@ export function AdminMediaUploader({ enabled, fieldName, label = "Images", multi
     }
   }
 
-  function onInputChange(event: ChangeEvent<HTMLInputElement>) { void upload(Array.from(event.target.files ?? [])); event.target.value = ""; }
-  function onDrop(event: DragEvent<HTMLDivElement>) { event.preventDefault(); setDragging(false); void upload(Array.from(event.dataTransfer.files)); }
+  function onInputChange(event: ChangeEvent<HTMLInputElement>) { chooseFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }
+  function onDrop(event: DragEvent<HTMLDivElement>) { event.preventDefault(); setDragging(false); chooseFiles(Array.from(event.dataTransfer.files)); }
 
   return <div className="space-y-3">
     <label className="grid gap-1 text-sm"><span>Alt text <span className="text-muted-foreground">(optional)</span></span><input className="h-10 border bg-background px-3" value={altText} onChange={(event) => setAltText(event.target.value)} maxLength={255} placeholder="Describe the image for accessibility" /></label>
     <div onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragging(false)} onDrop={onDrop} className={`border border-dashed p-6 text-center transition-colors ${dragging ? "border-primary bg-primary/5" : ""}`}>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple={multiple} className="sr-only" onChange={onInputChange} />
       <ImageIcon className="mx-auto size-7 text-muted-foreground" aria-hidden="true" />
-      <p className="mt-2 text-sm font-medium">Drag and drop {multiple ? `up to ${maxFiles} ${label.toLowerCase()}` : label.toLowerCase()}</p><p className="mt-1 text-xs text-muted-foreground">Large images are resized to 2400 px and optimized as WebP · 6 MB stored maximum</p>
+      <p className="mt-2 text-sm font-medium">Drag and drop {multiple ? `up to ${maxFiles} ${label.toLowerCase()}` : label.toLowerCase()}</p><p className="mt-1 text-xs text-muted-foreground">{crop ? "You can crop each image and preview it on phone and desktop before it uploads. " : ""}Large images are resized to 2400 px and optimized as WebP · 6 MB stored maximum</p>
       <button type="button" disabled={uploading || media.length >= maxFiles} onClick={() => inputRef.current?.click()} className="mt-4 border px-4 py-2 text-sm font-medium disabled:opacity-50">{uploading ? "Uploading…" : `Choose ${multiple ? "images" : "image"}`}</button>
       <p aria-live="polite" className="mt-3 text-xs text-muted-foreground">{message}</p>
     </div>
     {media.length ? <ul className="grid gap-2 sm:grid-cols-2">{media.map((item) => <li key={item.id} className="flex min-w-0 items-center gap-3 border p-2"><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{item.altText || "Uploaded image"}</p><p className="text-[.68rem] text-muted-foreground">{item.width && item.height ? `${item.width} × ${item.height}` : "Ready to use"}</p></div><button type="button" className="p-2" aria-label="Remove image from this form" onClick={() => setMedia((current) => current.filter((entry) => entry.id !== item.id))}><X className="size-4" /></button></li>)}</ul> : null}
     {fieldName ? media.map((item) => <input key={item.id} type="hidden" name={fieldName} value={item.url} />) : null}
+    {crop && cropQueue[0] ? (
+      <ImageCropDialog
+        key={`${cropQueue[0].name}-${cropTotal - cropQueue.length}`}
+        file={cropQueue[0]}
+        preset={crop}
+        position={{ current: cropTotal - cropQueue.length + 1, total: cropTotal }}
+        onConfirm={(file) => finishCropStep(file)}
+        onUseOriginal={() => finishCropStep(cropQueue[0] ?? null)}
+        onCancel={cancelCropStep}
+      />
+    ) : null}
   </div>;
 }

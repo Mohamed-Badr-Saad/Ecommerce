@@ -28,7 +28,7 @@ export default async function PaymentReturnPage({ searchParams }: Props) {
     <main className="mx-auto flex min-h-[65vh] max-w-2xl items-center px-5 py-16 text-center">
       <section className="w-full border border-border bg-card px-6 py-14 sm:px-12">
         <Icon className={`mx-auto size-11 ${paid ? "text-emerald-700" : failed ? "text-destructive" : "text-primary"}`} aria-hidden="true" />
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Paymob test checkout</p>
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Payment status</p>
         <h1 className="mt-3 font-heading text-5xl tracking-[-0.04em]">
           {paid ? "Payment received" : failed ? "Payment unsuccessful" : "Confirming payment"}
         </h1>
@@ -37,7 +37,7 @@ export default async function PaymentReturnPage({ searchParams }: Props) {
             ? `Your order ${order?.orderNumber} is confirmed.`
             : failed
               ? "The reserved stock has been returned. You can add the pieces again and retry."
-              : "We are waiting for Paymob’s signed confirmation. Refresh this page in a few moments; the redirect itself never changes your order status."}
+              : "We’re confirming your payment with the bank. This usually takes a few seconds — refresh this page shortly."}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {order ? <Button asChild className="rounded-none"><Link href={`/order-confirmation/${order.orderNumber}`}>View order</Link></Button> : null}

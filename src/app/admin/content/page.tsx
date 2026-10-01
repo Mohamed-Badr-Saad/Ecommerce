@@ -10,15 +10,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getAdminContent } from "@/lib/admin-content";
+import { getAnnouncements } from "@/lib/announcements";
 import { isSupabaseStorageConfigured } from "@/lib/supabase-admin";
 import {
+  createAnnouncementAction,
   createBannerAction,
   createFeedbackAction,
+  deleteAnnouncementAction,
   deleteBannerAction,
   deleteFeedbackAction,
   deleteMediaAction,
+  toggleAnnouncementAction,
   toggleBannerAction,
   toggleFeedbackAction,
+  updateAnnouncementAction,
   updateBannerAction,
   updateFeedbackAction,
   updateMediaAction,
@@ -34,7 +39,7 @@ function dateTimeValue(value: Date | null) {
 }
 
 export default async function AdminContentPage() {
-  const { media, banners, policies, feedback } = await getAdminContent();
+  const [{ media, banners, policies, feedback }, announcements] = await Promise.all([getAdminContent(), getAnnouncements()]);
   const uploadsEnabled = isSupabaseStorageConfigured();
   return (
     <section>
@@ -46,6 +51,59 @@ export default async function AdminContentPage() {
         Upload approved imagery and maintain the homepage hero, banners,
         customer feedback, and policy copy.
       </p>
+      <Card id="announcements" className="mt-6 rounded-none">
+        <CardHeader>
+          <CardTitle className="font-heading text-3xl">Announcement bar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-foreground">
+            The burgundy strip at the very top of every page. Use it for flash
+            deals, delivery offers or news. When more than one message is shown,
+            they slide automatically every few seconds. Short messages (about
+            40 characters) fit best on phones.
+            {!announcements.configured ? " Until you save a change, customers see the free-delivery message below." : ""}
+          </p>
+          <form action={createAnnouncementAction} className="grid gap-3 border p-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <div className="grid gap-1.5">
+              <Label htmlFor="announcement-text">New message</Label>
+              <Input id="announcement-text" name="text" required minLength={3} maxLength={120} placeholder="e.g. Flash sale: 20% off abayas this weekend" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="announcement-link">Link (optional)</Label>
+              <Input id="announcement-link" name="link" maxLength={300} placeholder="e.g. /shop?category=abayas" />
+            </div>
+            <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked /> Show on the website</label>
+              <div className="flex items-center gap-2 text-sm"><Label htmlFor="announcement-position">Order</Label><Input id="announcement-position" name="position" type="number" min="0" max="999" defaultValue={announcements.items.length} className="h-8 w-20" /></div>
+              <Button className="ml-auto rounded-none">Add message</Button>
+            </div>
+          </form>
+          {announcements.items.length ? (
+            <ul className="mt-5 max-h-[28rem] divide-y overflow-y-auto overscroll-contain border">
+              {announcements.items.map((item) => (
+                <li key={item.id} className="p-3">
+                  <form action={updateAnnouncementAction.bind(null, item.id)} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
+                    <Input name="text" defaultValue={item.text} required minLength={3} maxLength={120} aria-label="Message" />
+                    <Input name="link" defaultValue={item.link ?? ""} maxLength={300} aria-label="Link" placeholder="No link" />
+                    <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                      <Badge variant={item.isActive ? "secondary" : "outline"} className="rounded-none">{item.isActive ? "showing" : "hidden"}</Badge>
+                      <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="isActive" defaultChecked={item.isActive} /> Show</label>
+                      <div className="flex items-center gap-2 text-xs"><span>Order</span><Input name="position" type="number" min="0" max="999" defaultValue={item.position} aria-label="Order" className="h-8 w-20 text-xs" /></div>
+                      <Button variant="outline" size="sm" className="ml-auto h-8 rounded-none">Save</Button>
+                    </div>
+                  </form>
+                  <div className="mt-2 flex flex-wrap justify-end gap-2">
+                    <form action={toggleAnnouncementAction.bind(null, item.id)}><Button variant="ghost" size="sm" className="h-8 rounded-none">{item.isActive ? "Hide" : "Show"}</Button></form>
+                    <form action={deleteAnnouncementAction.bind(null, item.id)}><ConfirmSubmitButton message="Delete this announcement?">Delete</ConfirmSubmitButton></form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-5 border border-dashed p-6 text-center text-sm text-muted-foreground">No messages. The announcement bar is hidden until you add one.</p>
+          )}
+        </CardContent>
+      </Card>
       <Card className="mt-6 rounded-none">
         <CardHeader>
           <CardTitle className="font-heading text-3xl">Media library</CardTitle>
@@ -57,7 +115,7 @@ export default async function AdminContentPage() {
             listed here. Use it to fix alt text and to delete files nothing uses
             anymore. Showing the 30 most recent; click a thumbnail to enlarge.
           </p>
-          <AdminMediaUploader enabled={uploadsEnabled} label="media images" />
+          <AdminMediaUploader enabled={uploadsEnabled} label="media images" crop="free" />
           {media.length ? (
             <ul className="mt-5 max-h-[32rem] divide-y overflow-y-auto overscroll-contain border">
               {media.map((item) => (
@@ -152,6 +210,7 @@ export default async function AdminContentPage() {
                 enabled={uploadsEnabled}
                 fieldName="image"
                 label="banner image"
+                crop="banner"
                 multiple={false}
               />
             </div>
@@ -241,6 +300,7 @@ export default async function AdminContentPage() {
                         enabled={uploadsEnabled}
                         fieldName="image"
                         label="replacement banner image"
+                crop="banner"
                         multiple={false}
                       />
                     </div>
@@ -349,6 +409,7 @@ export default async function AdminContentPage() {
               enabled={uploadsEnabled}
               fieldName="image"
               label="feedback screenshots"
+                crop="feedback"
               defaultAltText="Customer feedback screenshot"
             />
             <div className="grid content-start gap-3">

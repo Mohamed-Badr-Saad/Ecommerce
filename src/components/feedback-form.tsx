@@ -26,7 +26,7 @@ export function FeedbackForm() {
       <div role="status" className="mx-auto mt-10 max-w-xl border border-border bg-card px-6 py-10 text-center">
         <CheckCircle2 className="mx-auto size-9 text-primary" aria-hidden="true" />
         <p className="mt-4 font-heading text-3xl">Thank you for sharing</p>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Your words help us shape every new Talié edit.</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Your feedback helps us improve every new collection.</p>
         <Button type="button" variant="outline" className="mt-6 rounded-none" onClick={() => setSubmitted(false)}>Share more feedback</Button>
       </div>
     );

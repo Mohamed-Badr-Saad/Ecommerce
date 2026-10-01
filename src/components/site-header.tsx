@@ -1,6 +1,7 @@
 import { Heart, Menu, Search, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import Link from "next/link";
 
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { getCart } from "@/lib/cart";
 import { hasAdminAccess } from "@/lib/admin";
+import { getActiveAnnouncements } from "@/lib/announcements";
 import { getCurrentSession } from "@/lib/session";
 
 const navigation = [
@@ -22,7 +24,7 @@ const navigation = [
 ];
 
 export async function SiteHeader() {
-  const [cart, session] = await Promise.all([getCart(), getCurrentSession()]);
+  const [cart, session, announcements] = await Promise.all([getCart(), getCurrentSession(), getActiveAnnouncements()]);
   const visibleNavigation = hasAdminAccess(session?.user)
     ? [...navigation, { label: "Admin", href: "/admin" }]
     : navigation;
@@ -36,10 +38,7 @@ export async function SiteHeader() {
   ];
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur">
-      <div className="bg-primary px-4 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.14em] text-primary-foreground sm:text-[0.68rem] sm:tracking-[0.18em]">
-        <span className="sm:hidden">Free delivery over EGP 2,500</span>
-        <span className="hidden sm:inline">Complimentary delivery on orders over EGP 2,500</span>
-      </div>
+      <AnnouncementBar announcements={announcements} />
       <div className="mx-auto grid h-20 max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-8 lg:px-12">
         <div className="flex items-center">
           <Sheet>

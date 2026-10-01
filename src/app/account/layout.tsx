@@ -1,6 +1,6 @@
 import { Heart, House, MapPin, PackageCheck, ShieldCheck, UserRound } from "lucide-react";
-import Link from "next/link";
 
+import { SectionNav } from "@/components/section-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { hasAdminAccess } from "@/lib/admin";
 import { requireSession } from "@/lib/session";
@@ -19,7 +19,17 @@ export default async function AccountLayout({ children }: { children: React.Reac
     <main className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
       <header className="mb-10"><p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Your Talié account</p><h1 className="mt-3 font-heading text-5xl tracking-[-0.04em]">Hello, {session.user.name.split(" ")[0]}</h1></header>
       <div className="grid gap-10 lg:grid-cols-[14rem_1fr]">
-        <aside className="min-w-0 lg:sticky lg:top-32 lg:self-start"><nav aria-label="Account navigation" className="-mx-5 flex snap-x gap-2 overflow-x-auto border-b border-border px-5 pb-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:px-0 lg:pb-0 lg:pr-6">{accountNav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="flex shrink-0 snap-start items-center gap-2 px-3 py-2 text-sm hover:bg-secondary"><Icon className="size-4" />{label}</Link>)}{hasAdminAccess(session.user) ? <Link href="/admin" className="flex shrink-0 snap-start items-center gap-2 px-3 py-2 text-sm font-medium text-primary hover:bg-secondary"><ShieldCheck className="size-4" />Admin studio</Link> : null}<SignOutButton /></nav></aside>
+        <aside className="min-w-0 lg:sticky lg:top-32 lg:self-start lg:border-r lg:border-border lg:pr-6">
+          <SectionNav
+            label="My account"
+            rootHref="/account"
+            items={[
+              ...accountNav.map(({ href, label, icon: Icon }) => ({ href, label, icon: <Icon className="size-4" aria-hidden="true" /> })),
+              ...(hasAdminAccess(session.user) ? [{ href: "/admin", label: "Admin studio", icon: <ShieldCheck className="size-4" aria-hidden="true" />, tone: "accent" as const }] : []),
+            ]}
+            footer={<SignOutButton />}
+          />
+        </aside>
         <div className="min-w-0">{children}</div>
       </div>
     </main>

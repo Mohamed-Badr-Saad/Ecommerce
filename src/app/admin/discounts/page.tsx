@@ -43,7 +43,7 @@ export default async function AdminDiscountsPage() {
   return <section>
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-muted-foreground">Promotions</p>
     <h2 className="mt-3 font-heading text-5xl">Discount codes</h2>
-    <p className="mt-3 max-w-3xl text-muted-foreground">Create codes customers enter in their bag. Codes apply to merchandise after sale prices, before delivery. A use is counted for every order that is not cancelled, so expired or failed online payments give the use back.</p>
+    <p className="mt-3 max-w-3xl text-muted-foreground">Create codes customers type in their bag to get money off. Codes apply to the items (after any sale price), not to delivery. Cancelled or unpaid online orders don’t count as a use.</p>
     <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,26rem)_1fr]">
       <Card className="h-fit rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">New code</CardTitle></CardHeader><CardContent>
         <form action={createDiscountCodeAction} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">

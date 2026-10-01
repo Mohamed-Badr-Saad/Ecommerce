@@ -55,8 +55,8 @@ export function ProductOptions({ productId, productTitle, productStock, variants
       {variants.length ? (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]">Choose an option</p>
-            <p className="text-xs text-muted-foreground">{stock ? `${stock} available` : "Unavailable"}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]">Choose size & colour</p>
+            <p className="text-xs text-muted-foreground">{stock ? stock <= 3 ? `Only ${stock} left` : "In stock" : "Out of stock"}</p>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {variants.map((variant) => {

@@ -60,7 +60,7 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
           <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "PAYMOB" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
             <input type="radio" name="paymentMethod" value="PAYMOB" checked={paymentMethod === "PAYMOB"} onChange={() => setPaymentMethod("PAYMOB")} className="mt-1 accent-primary" />
             <CreditCard className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <span><span className="block font-medium">Pay online</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Secure Paymob test checkout. Cards and available methods appear on Paymob.</span></span>
+            <span><span className="block font-medium">Pay online</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pay securely by card. You’ll finish payment on Paymob’s secure page.</span></span>
           </label>
           <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "COD" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
             <input type="radio" name="paymentMethod" value="COD" checked={paymentMethod === "COD"} onChange={() => setPaymentMethod("COD")} className="mt-1 accent-primary" />
@@ -69,14 +69,14 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
           </label>
         </fieldset>
         <dl className="mt-7 space-y-4 border-y border-border py-5 text-sm">
-          <div className="flex justify-between"><dt>Merchandise</dt><dd>{formatEgp(originalSubtotal)}</dd></div>
+          <div className="flex justify-between"><dt>Items</dt><dd>{formatEgp(originalSubtotal)}</dd></div>
           {discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Sale savings</dt><dd>−{formatEgp(discount)}</dd></div> : null}
-          {coupon ? <div className="flex justify-between text-emerald-700"><dt>Code {coupon.code}</dt><dd>−{formatEgp(coupon.amount)}</dd></div> : null}
-          <div className="flex justify-between"><dt>Delivery</dt><dd>{estimatedShipping === null ? "Calculated from address" : estimatedShipping === 0 ? "Complimentary" : formatEgp(estimatedShipping)}</dd></div>
+          {coupon ? <div className="flex justify-between text-emerald-700"><dt>Discount code {coupon.code}</dt><dd>−{formatEgp(coupon.amount)}</dd></div> : null}
+          <div className="flex justify-between"><dt>Delivery</dt><dd>{estimatedShipping === null ? "Choose your governorate" : estimatedShipping === 0 ? "Free" : formatEgp(estimatedShipping)}</dd></div>
           <div className="flex justify-between font-medium"><dt>Total</dt><dd>{formatEgp(subtotal + (estimatedShipping ?? 0))}</dd></div>
         </dl>
         {state.error ? <p role="alert" className="mt-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{state.error}</p> : null}
-        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}{paymentMethod === "PAYMOB" ? "Continue to secure payment" : "Place COD order"}</Button>
+        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}{paymentMethod === "PAYMOB" ? "Continue to secure payment" : "Place order — pay on delivery"}</Button>
         <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground"><LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> {paymentMethod === "PAYMOB" ? "Stock is reserved for one hour while you complete payment." : "Stock is committed when your COD order is placed."}</p>
       </aside>
     </form>

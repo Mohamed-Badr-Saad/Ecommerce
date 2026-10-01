@@ -8,19 +8,19 @@ import { formatEgp } from "@/lib/storefront";
 export default async function AdminDashboardPage() {
   const dashboard = await getAdminDashboard();
   const metricCards = [
-    { label: "Paid revenue", value: formatEgp(dashboard.metrics.paidRevenue), icon: Banknote },
+    { label: "Sales (paid)", value: formatEgp(dashboard.metrics.paidRevenue), icon: Banknote },
     { label: "All orders", value: dashboard.metrics.orderCount.toLocaleString("en-EG"), icon: PackageCheck },
-    { label: "Pending payments", value: dashboard.metrics.pendingPayments.toLocaleString("en-EG"), icon: CreditCard },
+    { label: "Awaiting online payment", value: dashboard.metrics.pendingPayments.toLocaleString("en-EG"), icon: CreditCard },
     { label: "Customers", value: dashboard.metrics.customerCount.toLocaleString("en-EG"), icon: UsersRound },
     { label: "Active products", value: dashboard.metrics.activeProducts.toLocaleString("en-EG"), icon: Shirt },
-    { label: "Low-stock options", value: dashboard.metrics.lowStockCount.toLocaleString("en-EG"), icon: AlertTriangle },
+    { label: "Low-stock items", value: dashboard.metrics.lowStockCount.toLocaleString("en-EG"), icon: AlertTriangle },
   ];
 
   return (
     <section>
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Operations overview</p>
       <h2 className="mt-3 font-heading text-5xl tracking-[-0.04em]">Dashboard</h2>
-      <p className="mt-3 max-w-2xl text-muted-foreground">Live commerce, customer, payment, and inventory signals from the Talié database.</p>
+      <p className="mt-3 max-w-2xl text-muted-foreground">A quick look at your sales, orders, customers and stock.</p>
 
       <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {metricCards.map(({ label, value, icon: Icon }) => <Card key={label} className="rounded-none"><CardHeader><div className="flex items-center justify-between"><CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle><Icon className="size-4 text-primary" aria-hidden="true" /></div></CardHeader><CardContent><p className="font-heading text-4xl">{value}</p></CardContent></Card>)}

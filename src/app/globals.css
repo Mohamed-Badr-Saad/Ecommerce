@@ -94,3 +94,9 @@
   body { @apply overflow-x-clip bg-background text-foreground; }
   ::selection { background: var(--brand-burgundy); color: var(--brand-porcelain); }
 }
+
+/* Announcement strip ticker: the track holds two identical halves and moves left by one half. */
+@keyframes announcement-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}

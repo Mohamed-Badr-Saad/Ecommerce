@@ -60,8 +60,8 @@ export function CatalogControls({
   const hasFilters = Boolean(query.q || query.collection || query.category || query.color || query.size || query.availability || query.sort !== "newest");
   const filterContent = (mobile: boolean) => <>
       <form action={pathname} className="mb-6 flex gap-2">
-        <Input name="q" defaultValue={query.q} placeholder="Search pieces" aria-label="Search products" className="h-11 rounded-none bg-card" />
-        <Button type="submit" size="icon" className="size-11 shrink-0 rounded-none" aria-label="Submit search"><Search /></Button>
+        <Input name="q" defaultValue={query.q} placeholder="Search products" aria-label="Search products" className="h-11 rounded-none bg-card" />
+        <Button type="submit" size="icon" className="size-11 shrink-0 rounded-none" aria-label="Search"><Search /></Button>
       </form>
 
       {collections.length ? <FilterGroup label="Collection" field="collection" active={query.collection} query={query} pathname={pathname} options={collections.map((item) => ({ label: item.name, value: item.slug }))} /> : null}
@@ -89,9 +89,9 @@ export function CatalogControls({
     <aside aria-label="Catalog filters" className="lg:sticky lg:top-32 lg:self-start">
       <details className="group border-y border-border py-4 lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
-          <span className="flex items-center gap-2"><SlidersHorizontal className="size-4" /> Refine the edit</span>
-          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Open filters</span>
-          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Close filters</span>
+          <span className="flex items-center gap-2"><SlidersHorizontal className="size-4" /> Filter & sort</span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Show</span>
+          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Hide</span>
         </summary>
         <div className="mt-6">{filterContent(true)}</div>
       </details>
