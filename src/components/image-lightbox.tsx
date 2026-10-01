@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 type Props = {
@@ -13,7 +14,11 @@ type Props = {
   caption?: React.ReactNode;
 };
 
-/** A thumbnail button that opens the full image in an overlay (Esc, backdrop, or × closes it). */
+/**
+ * A thumbnail button that opens the full image in an overlay (Esc, backdrop, or × closes it).
+ * The overlay is portalled to <body> so moving/transformed parents (like the feedback slider)
+ * can't trap its fixed positioning.
+ */
 export function ImageLightbox({ src, alt, children, className, caption }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -34,7 +39,7 @@ export function ImageLightbox({ src, alt, children, className, caption }: Props)
       <button type="button" onClick={() => setOpen(true)} className={className} aria-label={`Enlarge: ${alt}`}>
         {children}
       </button>
-      {open ? (
+      {open ? createPortal(
         <div role="dialog" aria-modal="true" aria-label={alt} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-8" onClick={() => setOpen(false)}>
           <button type="button" onClick={() => setOpen(false)} className="absolute right-3 top-3 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" aria-label="Close image" autoFocus>
             <X className="size-6" aria-hidden="true" />
@@ -45,7 +50,8 @@ export function ImageLightbox({ src, alt, children, className, caption }: Props)
             </div>
             {caption ? <figcaption className="mt-3 max-w-2xl text-center text-sm text-white/85">{caption}</figcaption> : null}
           </figure>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

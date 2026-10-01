@@ -17,63 +17,77 @@ type FeedbackItem = {
   caption: string | null;
 };
 
-const SPEED_PX_PER_SECOND = 40;
+const SPEED_PX_PER_SECOND = 35;
+// Slower, but still moving, for visitors whose system asks for reduced motion.
+const REDUCED_MOTION_SPEED_PX_PER_SECOND = 15;
 const RESUME_AFTER_TOUCH_MS = 2500;
-const MIN_ITEMS_TO_ANIMATE = 3;
+const DRAG_THRESHOLD_PX = 8;
+
+/** Wraps the position into one list width and moves the list there. */
+function applyPosition(list: HTMLUListElement | null, position: { current: number }, width: number) {
+  if (!list || width <= 0) return;
+  position.current = ((position.current % width) + width) % width;
+  list.style.transform = `translate3d(${-position.current}px, 0, 0)`;
+}
 
 /**
- * Continuously scrolling feedback slider. It pauses while hovered, touched, or focused,
- * can be swiped/scrolled by hand, and stays still for visitors who prefer reduced motion.
+ * Continuously moving feedback slider. Movement is a transform driven by
+ * requestAnimationFrame (not scrollLeft, which browsers round on scaled displays and
+ * can stall). It pauses on mouse hover, keyboard focus, and touch; on touch screens it
+ * can be dragged sideways. With "reduce motion" enabled it moves more slowly.
  */
 export function CustomerFeedbackWall({ feedback }: { feedback: FeedbackItem[] }) {
-  const trackRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const pausedRef = useRef(false);
+  const positionRef = useRef(0);
   const setWidthRef = useRef(0);
+  // Independent reasons to hold still; the slider moves only when none is active.
+  const holdRef = useRef({ touch: false, focus: false });
+  const dragRef = useRef<{ startX: number; startY: number; startPosition: number; moved: boolean; horizontal: boolean | null } | null>(null);
+  const suppressClickRef = useRef(false);
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const animate = feedback.length >= MIN_ITEMS_TO_ANIMATE;
-  // Enough copies of the list that one full set can scroll out of view before wrapping.
-  const [copies, setCopies] = useState(animate ? 2 : 1);
+  // Enough copies of the list that one full set can move out of view before wrapping.
+  const [copies, setCopies] = useState(2);
 
   useEffect(() => {
-    const track = trackRef.current;
+    const viewport = viewportRef.current;
     const list = listRef.current;
-    if (!animate || !track || !list) return;
-    const observer = new ResizeObserver(() => {
-      const items = list.children;
-      const second = items[feedback.length] as HTMLElement | undefined;
-      const first = items[0] as HTMLElement | undefined;
+    if (!viewport || !list || !feedback.length) return;
+    const measure = () => {
+      const first = list.children[0] as HTMLElement | undefined;
+      const second = list.children[feedback.length] as HTMLElement | undefined;
       if (!first || !second) return;
-      const setWidth = second.offsetLeft - first.offsetLeft;
-      setWidthRef.current = setWidth;
-      if (setWidth > 0) setCopies(Math.max(2, Math.ceil(track.clientWidth / setWidth) + 1));
-    });
-    observer.observe(track);
+      const width = second.offsetLeft - first.offsetLeft;
+      if (width <= 0) return;
+      setWidthRef.current = width;
+      setCopies(Math.max(2, Math.ceil(viewport.clientWidth / width) + 1));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
     observer.observe(list);
     return () => observer.disconnect();
-  }, [animate, feedback.length]);
+  }, [feedback.length]);
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!animate || !track || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const viewport = viewportRef.current;
+    if (!feedback.length || !viewport) return;
+    const speed = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? REDUCED_MOTION_SPEED_PX_PER_SECOND : SPEED_PX_PER_SECOND;
+    // Read hover from the browser's own :hover state each frame (only on real mouse/trackpad
+    // devices) so it can't get stuck when an enlarged image closes outside the slider.
+    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
     const timers = resumeTimer;
     let frame = 0;
     let last = performance.now();
-    let carry = 0;
     const step = (now: number) => {
       const elapsed = Math.min(now - last, 100);
       last = now;
-      const setWidth = setWidthRef.current;
-      if (!pausedRef.current && setWidth > 0) {
-        carry += (SPEED_PX_PER_SECOND * elapsed) / 1000;
-        const whole = Math.floor(carry);
-        carry -= whole;
-        let next = track.scrollLeft + whole;
-        if (next >= setWidth) next -= setWidth;
-        track.scrollLeft = next;
-      } else if (setWidth > 0 && track.scrollLeft >= setWidth) {
-        // Keep manual swipes inside the looping range too.
-        track.scrollLeft -= setWidth;
+      const hold = holdRef.current;
+      // Focus can vanish without a blur event (e.g. a closed lightbox unmounts); recheck it.
+      if (hold.focus && !viewport.contains(document.activeElement)) hold.focus = false;
+      const hovered = canHover.matches && viewport.matches(":hover");
+      if (!hovered && !hold.touch && !hold.focus && !document.hidden && setWidthRef.current > 0) {
+        positionRef.current += (speed * elapsed) / 1000;
+        applyPosition(listRef.current, positionRef, setWidthRef.current);
       }
       frame = requestAnimationFrame(step);
     };
@@ -82,16 +96,41 @@ export function CustomerFeedbackWall({ feedback }: { feedback: FeedbackItem[] })
       cancelAnimationFrame(frame);
       clearTimeout(timers.current);
     };
-  }, [animate]);
+  }, [feedback.length]);
 
   if (!feedback.length) return null;
 
-  const pause = () => { clearTimeout(resumeTimer.current); pausedRef.current = true; };
-  const resume = (delay = 0) => {
+  const holdForTouch = () => { clearTimeout(resumeTimer.current); holdRef.current.touch = true; };
+  const releaseTouchLater = () => {
     clearTimeout(resumeTimer.current);
-    resumeTimer.current = setTimeout(() => { pausedRef.current = false; }, delay);
+    resumeTimer.current = setTimeout(() => { holdRef.current.touch = false; }, RESUME_AFTER_TOUCH_MS);
   };
-  // The list is repeated so the scroll can wrap around seamlessly.
+
+  const onTouchStart = (event: React.TouchEvent) => {
+    holdForTouch();
+    const touch = event.touches[0];
+    if (!touch) return;
+    dragRef.current = { startX: touch.clientX, startY: touch.clientY, startPosition: positionRef.current, moved: false, horizontal: null };
+  };
+  const onTouchMove = (event: React.TouchEvent) => {
+    const drag = dragRef.current;
+    const touch = event.touches[0];
+    if (!drag || !touch) return;
+    const dx = touch.clientX - drag.startX;
+    const dy = touch.clientY - drag.startY;
+    if (drag.horizontal === null && Math.max(Math.abs(dx), Math.abs(dy)) > DRAG_THRESHOLD_PX) drag.horizontal = Math.abs(dx) > Math.abs(dy);
+    if (!drag.horizontal) return;
+    drag.moved = true;
+    positionRef.current = drag.startPosition - dx;
+    applyPosition(listRef.current, positionRef, setWidthRef.current);
+  };
+  const onTouchEnd = () => {
+    suppressClickRef.current = Boolean(dragRef.current?.moved);
+    dragRef.current = null;
+    releaseTouchLater();
+  };
+
+  // The list is repeated so the movement can wrap around seamlessly.
   const loop = Array.from({ length: copies }, () => feedback).flat();
 
   return (
@@ -104,19 +143,22 @@ export function CustomerFeedbackWall({ feedback }: { feedback: FeedbackItem[] })
         />
       </div>
       <div
-        ref={trackRef}
-        className="mt-10 overflow-x-auto pb-20 [scrollbar-width:none] lg:pb-28 [&::-webkit-scrollbar]:hidden"
-        onPointerEnter={(event) => { if (event.pointerType === "mouse") pause(); }}
-        onPointerLeave={(event) => { if (event.pointerType === "mouse") resume(); }}
-        onTouchStart={pause}
-        onTouchEnd={() => resume(RESUME_AFTER_TOUCH_MS)}
-        onTouchCancel={() => resume(RESUME_AFTER_TOUCH_MS)}
-        onFocus={pause}
-        onBlur={() => resume()}
-        aria-label="Customer feedback"
+        ref={viewportRef}
         role="region"
+        aria-label="Customer feedback"
+        className="mt-10 touch-pan-y overflow-hidden pb-20 lg:pb-28"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+        onFocus={(event) => { if (event.target.matches(":focus-visible")) holdRef.current.focus = true; }}
+        onBlur={() => { holdRef.current.focus = false; }}
+        onClickCapture={(event) => {
+          // A swipe should not also open the screenshot it started on.
+          if (suppressClickRef.current) { event.preventDefault(); event.stopPropagation(); suppressClickRef.current = false; }
+        }}
       >
-        <ul ref={listRef} className="flex w-max gap-4 px-5 sm:gap-5 sm:px-8 lg:px-12">
+        <ul ref={listRef} className="flex w-max gap-4 px-5 will-change-transform sm:gap-5 sm:px-8 lg:px-12">
           {loop.map((item, index) => {
             const duplicate = index >= feedback.length;
             const alt = item.altText ?? (item.customerName ? `Feedback from ${item.customerName}` : "Customer feedback screenshot");
