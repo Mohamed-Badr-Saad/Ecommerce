@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { CollectionsSlider } from "@/components/collections-slider";
 import { CustomerFeedbackWall } from "@/components/customer-feedback-wall";
 import { FeedbackForm } from "@/components/feedback-form";
 import { ProductCard } from "@/components/product-card";
@@ -66,44 +67,18 @@ export default async function Home() {
         </div>
       </section>}
 
-      <section id="collections" className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
-        <SectionHeading
-          eyebrow="Shop by mood"
-          title="Designed around your day"
-          description="A considered wardrobe of pieces that move easily from early mornings to late evenings."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {collections.map((collection, index) => (
-            <Link
-              key={collection.slug}
-              href={`/collections/${collection.slug}`}
-              className={`group relative overflow-hidden bg-muted ${index === 1 ? "md:mt-10" : ""}`}
-            >
-              <div className="relative aspect-[4/5]">
-                <Image
-                  src={collection.image ?? "/editorial/hero.svg"}
-                  alt={`${collection.name} collection`}
-                  fill
-                  sizes="(min-width: 768px) 33vw, 100vw"
-                  className="object-cover transition duration-700 ease-out group-hover:scale-[1.03]"
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/55 via-transparent to-transparent" />
-              </div>
-              <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/75">
-                  {index === 0 ? "Soft structure" : index === 1 ? "Quietly elevated" : "Made to move"}
-                </p>
-                <h2 className="mt-2 font-heading text-3xl tracking-tight">
-                  {collection.name}
-                </h2>
-                <span className="mt-4 inline-block border-b border-white pb-1 text-sm">
-                  Discover the collection
-                </span>
-              </div>
-            </Link>
-          ))}
+      {collections.length ? <section id="collections" className="mx-auto max-w-[1600px] py-20 lg:py-28">
+        <div className="px-5 sm:px-8 lg:px-12">
+          <SectionHeading
+            eyebrow="Shop by mood"
+            title="Designed around your day"
+            description="A considered wardrobe of pieces that move easily from early mornings to late evenings."
+          />
         </div>
-      </section>
+        <CollectionsSlider
+          collections={collections.map(({ id, slug, name, description, image }) => ({ id, slug, name, description, image }))}
+        />
+      </section> : null}
 
       <section id="new-arrivals" className="bg-secondary/55">
         <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">

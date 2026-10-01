@@ -175,7 +175,7 @@ export async function getHomeCatalog() {
       orderBy: { publishedAt: "desc" },
       take: 4,
     }),
-    prisma.productCollection.findMany({ where: { isActive: true, slug: { not: "debut-edit" } }, orderBy: { displayOrder: "asc" }, take: 3 }),
+    prisma.productCollection.findMany({ where: { isActive: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], take: 24 }),
   ]);
   return { products: products.map(mapProduct), collections };
 }
