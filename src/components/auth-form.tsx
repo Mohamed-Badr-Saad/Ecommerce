@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
 import { safeInternalPath } from "@/lib/internal-navigation";
 
@@ -76,9 +77,9 @@ export function AuthForm({ mode, callbackURL = "/shop", token, resetError }: { m
       <form onSubmit={handleSubmit} className="mt-8 space-y-5" aria-describedby={mode === "reset" ? "password-requirements" : undefined}>
         {mode === "sign-up" ? <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" name="name" autoComplete="name" className="h-12 rounded-none bg-card" required minLength={2} /></div> : null}
         {mode !== "reset" ? <div className="space-y-2"><Label htmlFor="email">Email address</Label><Input id="email" name="email" type="email" autoComplete="email" className="h-12 rounded-none bg-card" required /></div> : null}
-        {mode === "sign-in" || mode === "sign-up" || mode === "reset" ? <div className="space-y-2"><Label htmlFor="password">{mode === "reset" ? "New password" : "Password"}</Label><Input id="password" name="password" type="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} className="h-12 rounded-none bg-card" required minLength={8} maxLength={128} /></div> : null}
+        {mode === "sign-in" || mode === "sign-up" || mode === "reset" ? <div className="space-y-2"><Label htmlFor="password">{mode === "reset" ? "New password" : "Password"}</Label><PasswordInput id="password" name="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} className="h-12 rounded-none bg-card" required minLength={8} maxLength={128} /></div> : null}
         {mode === "reset" ? <p id="password-requirements" className="text-sm text-muted-foreground">Use 8–128 characters and avoid reusing a password from another account.</p> : null}
-        {mode === "sign-up" || mode === "reset" ? <div className="space-y-2"><Label htmlFor="confirmPassword">Confirm password</Label><Input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" className="h-12 rounded-none bg-card" required minLength={8} maxLength={128} /></div> : null}
+        {mode === "sign-up" || mode === "reset" ? <div className="space-y-2"><Label htmlFor="confirmPassword">Confirm password</Label><PasswordInput id="confirmPassword" name="confirmPassword" autoComplete="new-password" className="h-12 rounded-none bg-card" required minLength={8} maxLength={128} /></div> : null}
         {error ? <p role="alert" className="border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p> : null}
         {success ? <p role="status" className="border border-primary/20 bg-secondary px-4 py-3 text-sm leading-6">{success}</p> : null}
         <Button type="submit" className="h-12 w-full rounded-none" disabled={pending || (mode === "reset" && Boolean(resetError))}>{pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}{mode === "sign-in" ? "Sign in" : mode === "sign-up" ? "Create account" : mode === "forgot" ? "Send reset link" : "Update password"}</Button>

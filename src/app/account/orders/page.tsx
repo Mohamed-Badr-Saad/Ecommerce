@@ -11,6 +11,8 @@ import { formatEgp } from "@/lib/storefront";
 
 const paymentLabels = { COD: "Cash on delivery", PAYMOB: "Online payment" } as const;
 
+export const metadata = { title: "Your orders" };
+
 export default async function OrdersPage() {
   const session = await requireSession();
   const released = await releaseExpiredOrdersForUser(session.user.id);

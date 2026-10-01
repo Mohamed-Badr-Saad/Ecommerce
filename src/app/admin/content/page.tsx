@@ -92,7 +92,7 @@ export default async function AdminContentPage() {
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <form
                         action={updateMediaAction.bind(null, item.id)}
-                        className="flex min-w-0 flex-1 gap-2"
+                        className="flex min-w-0 flex-1 basis-44 gap-2"
                       >
                         <Input
                           name="altText"
@@ -157,15 +157,15 @@ export default async function AdminContentPage() {
             </div>
             <Input name="ctaText" placeholder="Button label" />
             <Input name="ctaLink" placeholder="/shop" />
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="banner-start">Starts (optional)</Label>
               <Input id="banner-start" name="startDate" type="datetime-local" />
             </div>
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="banner-end">Ends (optional)</Label>
               <Input id="banner-end" name="endDate" type="datetime-local" />
             </div>
-            <div>
+            <div className="grid gap-1.5">
               <Label htmlFor="banner-order">Display order</Label>
               <Input
                 id="banner-order"
@@ -256,7 +256,7 @@ export default async function AdminContentPage() {
                       aria-label="Button link"
                       placeholder="/shop"
                     />
-                    <div>
+                    <div className="grid gap-1.5">
                       <Label htmlFor={`start-${banner.id}`}>Starts</Label>
                       <Input
                         id={`start-${banner.id}`}
@@ -265,7 +265,7 @@ export default async function AdminContentPage() {
                         defaultValue={dateTimeValue(banner.startDate)}
                       />
                     </div>
-                    <div>
+                    <div className="grid gap-1.5">
                       <Label htmlFor={`end-${banner.id}`}>Ends</Label>
                       <Input
                         id={`end-${banner.id}`}
@@ -274,7 +274,7 @@ export default async function AdminContentPage() {
                         defaultValue={dateTimeValue(banner.endDate)}
                       />
                     </div>
-                    <div>
+                    <div className="grid gap-1.5">
                       <Label htmlFor={`order-${banner.id}`}>
                         Display order
                       </Label>
@@ -352,7 +352,7 @@ export default async function AdminContentPage() {
               defaultAltText="Customer feedback screenshot"
             />
             <div className="grid content-start gap-3">
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="feedback-name">Customer name (optional)</Label>
                 <Input
                   id="feedback-name"
@@ -361,7 +361,7 @@ export default async function AdminContentPage() {
                   placeholder="e.g. Mariam, Cairo"
                 />
               </div>
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="feedback-caption">Caption (optional)</Label>
                 <Textarea
                   id="feedback-caption"
@@ -371,7 +371,7 @@ export default async function AdminContentPage() {
                   placeholder="Short quote or context shown under the screenshot"
                 />
               </div>
-              <div>
+              <div className="grid gap-1.5">
                 <Label htmlFor="feedback-order">Display order</Label>
                 <Input
                   id="feedback-order"
@@ -517,7 +517,7 @@ export default async function AdminContentPage() {
                 action={updatePolicyAction.bind(null, policy.id)}
                 className="grid gap-3 border p-4"
               >
-                <div>
+                <div className="grid gap-1.5">
                   <Label htmlFor={`title-${policy.id}`}>
                     {policy.type.toLowerCase()}
                   </Label>

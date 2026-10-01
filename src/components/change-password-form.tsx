@@ -4,8 +4,8 @@ import { useState, type FormEvent } from "react";
 import { LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
 
 export function ChangePasswordForm() {
@@ -39,9 +39,9 @@ export function ChangePasswordForm() {
 
   return <form onSubmit={submit} className="grid gap-5" aria-describedby="change-password-help">
     <p id="change-password-help" className="text-sm leading-6 text-muted-foreground">Use 8–128 characters. Changing your password signs out your other devices.</p>
-    <div className="space-y-2"><Label htmlFor="current-password">Current password</Label><Input id="current-password" name="currentPassword" type="password" autoComplete="current-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
-    <div className="space-y-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" name="newPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
-    <div className="space-y-2"><Label htmlFor="confirm-new-password">Confirm new password</Label><Input id="confirm-new-password" name="confirmation" type="password" autoComplete="new-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
+    <div className="space-y-2"><Label htmlFor="current-password">Current password</Label><PasswordInput id="current-password" name="currentPassword" autoComplete="current-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
+    <div className="space-y-2"><Label htmlFor="new-password">New password</Label><PasswordInput id="new-password" name="newPassword" autoComplete="new-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
+    <div className="space-y-2"><Label htmlFor="confirm-new-password">Confirm new password</Label><PasswordInput id="confirm-new-password" name="confirmation" autoComplete="new-password" minLength={8} maxLength={128} required className="h-11 rounded-none" /></div>
     {error ? <p role="alert" className="border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p> : null}
     {success ? <p role="status" className="border border-primary/20 bg-secondary px-4 py-3 text-sm">{success}</p> : null}
     <Button type="submit" disabled={pending} className="h-11 rounded-none sm:w-fit">{pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}Change password</Button>

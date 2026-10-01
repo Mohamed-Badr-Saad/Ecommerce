@@ -89,7 +89,8 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  html { scroll-behavior: smooth; }
+  /* Keep in-page anchors (e.g. /#feedback) clear of the sticky header. */
+  html { scroll-behavior: smooth; scroll-padding-top: 7.5rem; }
   body { @apply overflow-x-clip bg-background text-foreground; }
   ::selection { background: var(--brand-burgundy); color: var(--brand-porcelain); }
 }

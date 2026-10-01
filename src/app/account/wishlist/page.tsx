@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 
+export const metadata = { title: "Wishlist" };
+
 export default async function WishlistPage() {
   const session = await requireSession();
   const items = await prisma.wishlistItem.findMany({ where: { wishlist: { userId: session.user.id } }, include: { product: { include: { category: { select: { name: true } }, images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } } } }, orderBy: { createdAt: "desc" } });

@@ -16,6 +16,8 @@ const fields = [
   ["governorate", "Governorate", ""], ["postalCode", "Postal code", ""], ["phone", "Phone", ""],
 ] as const;
 
+export const metadata = { title: "Addresses" };
+
 export default async function AddressesPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const [session, params] = await Promise.all([requireSession(), searchParams]);
   const addresses = await prisma.address.findMany({ where: { userId: session.user.id }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] });

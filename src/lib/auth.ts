@@ -16,11 +16,17 @@ const developmentOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? "")
   .filter(Boolean)
   .flatMap((hostname) => [`https://${hostname}`, `http://${hostname}`]);
 
+// `next dev` should always accept sign-ins from the local machine, even when .env points the app
+// URLs at a tunnel or the Vercel domain. Production builds never add these.
+const localDevelopmentOrigins = process.env.NODE_ENV === "production"
+  ? []
+  : ["http://localhost:3000", "http://127.0.0.1:3000", ...(process.env.PORT ? [`http://localhost:${process.env.PORT}`] : [])];
+
 export const auth = betterAuth({
   appName: "Talié",
   baseURL: serverEnv.BETTER_AUTH_URL,
   secret: serverEnv.BETTER_AUTH_SECRET,
-  trustedOrigins: Array.from(new Set([serverEnv.NEXT_PUBLIC_APP_URL, ...developmentOrigins, ...vercelOrigins])),
+  trustedOrigins: Array.from(new Set([serverEnv.NEXT_PUBLIC_APP_URL, serverEnv.BETTER_AUTH_URL, ...developmentOrigins, ...vercelOrigins, ...localDevelopmentOrigins])),
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,

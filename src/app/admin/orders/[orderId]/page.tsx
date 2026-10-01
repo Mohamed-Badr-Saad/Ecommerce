@@ -11,6 +11,8 @@ import { cancelOrderAction, deliverOrderAction, processOrderAction, shipOrderAct
 
 type Props = { params: Promise<{ orderId: string }> };
 
+export const metadata = { title: "Order details | Admin" };
+
 export default async function AdminOrderPage({ params }: Props) {
   const { orderId } = await params;
   const order = await getAdminOrder(orderId);

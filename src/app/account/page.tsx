@@ -5,6 +5,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 
+export const metadata = { title: "Your account" };
+
 export default async function AccountPage() {
   const session = await requireSession();
   const [addresses, wishlistItems, orders] = await Promise.all([

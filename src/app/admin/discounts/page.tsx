@@ -23,16 +23,16 @@ function DiscountFields({ discount, idPrefix }: { discount: Defaults; idPrefix: 
   const id = (name: string) => `${idPrefix}-${name}`;
   const num = (value: { toString(): string } | null | undefined) => value == null ? "" : String(value);
   return <>
-    <div><Label htmlFor={id("code")}>Code</Label><Input id={id("code")} name="code" defaultValue={discount?.code} required minLength={3} maxLength={32} pattern="[A-Za-z0-9_\-]{3,32}" placeholder="WELCOME10" className="uppercase" /></div>
-    <div><Label htmlFor={id("description")}>Internal note</Label><Input id={id("description")} name="description" defaultValue={discount?.description ?? ""} maxLength={200} placeholder="Instagram launch campaign" /></div>
-    <div><Label htmlFor={id("type")}>Type</Label><select id={id("type")} name="type" defaultValue={discount?.type ?? "PERCENTAGE"} className="h-9 w-full border border-input bg-transparent px-3 text-sm"><option value="PERCENTAGE">Percentage off</option><option value="FIXED_AMOUNT">Fixed amount off (EGP)</option></select></div>
-    <div><Label htmlFor={id("value")}>Value</Label><Input id={id("value")} name="value" type="number" min="0.01" step="0.01" defaultValue={num(discount?.value)} required placeholder="10" /></div>
-    <div><Label htmlFor={id("minSubtotal")}>Minimum spend (EGP, optional)</Label><Input id={id("minSubtotal")} name="minSubtotal" type="number" min="0.01" step="0.01" defaultValue={num(discount?.minSubtotal)} /></div>
-    <div><Label htmlFor={id("maxDiscount")}>Max discount for % codes (EGP, optional)</Label><Input id={id("maxDiscount")} name="maxDiscount" type="number" min="0.01" step="0.01" defaultValue={num(discount?.maxDiscount)} /></div>
-    <div><Label htmlFor={id("usageLimit")}>Total uses (optional)</Label><Input id={id("usageLimit")} name="usageLimit" type="number" min="1" step="1" defaultValue={num(discount?.usageLimit)} /></div>
-    <div><Label htmlFor={id("perCustomerLimit")}>Uses per customer (optional)</Label><Input id={id("perCustomerLimit")} name="perCustomerLimit" type="number" min="1" step="1" defaultValue={num(discount?.perCustomerLimit)} /></div>
-    <div><Label htmlFor={id("startsAt")}>Starts (optional)</Label><Input id={id("startsAt")} name="startsAt" type="datetime-local" defaultValue={dateTimeValue(discount?.startsAt ?? null)} /></div>
-    <div><Label htmlFor={id("endsAt")}>Ends (optional)</Label><Input id={id("endsAt")} name="endsAt" type="datetime-local" defaultValue={dateTimeValue(discount?.endsAt ?? null)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("code")}>Code</Label><Input id={id("code")} name="code" defaultValue={discount?.code} required minLength={3} maxLength={32} pattern="[A-Za-z0-9_\-]{3,32}" placeholder="e.g. WELCOME10" className="uppercase" /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("description")}>Internal note</Label><Input id={id("description")} name="description" defaultValue={discount?.description ?? ""} maxLength={200} placeholder="e.g. Instagram launch campaign" /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("type")}>Type</Label><select id={id("type")} name="type" defaultValue={discount?.type ?? "PERCENTAGE"} className="h-9 w-full border border-input bg-transparent px-3 text-sm"><option value="PERCENTAGE">Percentage off</option><option value="FIXED_AMOUNT">Fixed amount off (EGP)</option></select></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("value")}>Value</Label><Input id={id("value")} name="value" type="number" min="0.01" step="0.01" defaultValue={num(discount?.value)} required placeholder="e.g. 10" /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("minSubtotal")}>Minimum spend (EGP, optional)</Label><Input id={id("minSubtotal")} name="minSubtotal" type="number" min="0.01" step="0.01" defaultValue={num(discount?.minSubtotal)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("maxDiscount")}>Max discount for % codes (EGP, optional)</Label><Input id={id("maxDiscount")} name="maxDiscount" type="number" min="0.01" step="0.01" defaultValue={num(discount?.maxDiscount)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("usageLimit")}>Total uses (optional)</Label><Input id={id("usageLimit")} name="usageLimit" type="number" min="1" step="1" defaultValue={num(discount?.usageLimit)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("perCustomerLimit")}>Uses per customer (optional)</Label><Input id={id("perCustomerLimit")} name="perCustomerLimit" type="number" min="1" step="1" defaultValue={num(discount?.perCustomerLimit)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("startsAt")}>Starts (optional)</Label><Input id={id("startsAt")} name="startsAt" type="datetime-local" defaultValue={dateTimeValue(discount?.startsAt ?? null)} /></div>
+    <div className="grid gap-1.5"><Label htmlFor={id("endsAt")}>Ends (optional)</Label><Input id={id("endsAt")} name="endsAt" type="datetime-local" defaultValue={dateTimeValue(discount?.endsAt ?? null)} /></div>
     <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="isActive" defaultChecked={discount?.isActive ?? true} /> Active — customers can apply this code</label>
   </>;
 }

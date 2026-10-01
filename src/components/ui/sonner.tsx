@@ -6,9 +6,10 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
 export function Toaster(props: ToasterProps) {
   return (
     <Sonner
-      position="top-center"
-      offset={88}
-      mobileOffset={72}
+      // Bottom placement keeps toasts clear of the sticky header on every screen size.
+      position="bottom-right"
+      offset={24}
+      mobileOffset={16}
       duration={3500}
       closeButton
       toastOptions={{

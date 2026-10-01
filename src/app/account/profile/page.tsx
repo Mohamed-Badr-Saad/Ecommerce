@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireSession } from "@/lib/session";
 
+export const metadata = { title: "Profile" };
+
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const [session, params] = await Promise.all([requireSession(), searchParams]);
   return <section>
