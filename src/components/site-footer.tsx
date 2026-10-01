@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 const footerLinks = [
   { label: "New arrivals", href: "/#new-arrivals" },
   { label: "Collections", href: "/#collections" },
-  { label: "Our story", href: "/#newsletter" },
+  { label: "Share feedback", href: "/#feedback" },
   { label: "Contact", href: "mailto:hello@talie.example" },
 ];
 

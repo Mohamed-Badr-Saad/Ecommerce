@@ -1,15 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { CustomerFeedbackWall } from "@/components/customer-feedback-wall";
+import { FeedbackForm } from "@/components/feedback-form";
 import { ProductCard } from "@/components/product-card";
 import { HomepageBanner } from "@/components/homepage-banner";
 import { SectionHeading } from "@/components/section-heading";
 import { Button } from "@/components/ui/button";
 import { getHomeCatalog } from "@/lib/catalog";
-import { getActiveBanners } from "@/lib/admin-content";
+import { getActiveBanners, getActiveCustomerFeedback } from "@/lib/admin-content";
 
 export default async function Home() {
-  const [{ collections, products }, banners] = await Promise.all([getHomeCatalog(), getActiveBanners()]);
+  const [{ collections, products }, banners, feedback] = await Promise.all([getHomeCatalog(), getActiveBanners(), getActiveCustomerFeedback()]);
   return (
     <main>
       {banners.length ? <HomepageBanner banners={banners} /> : <section className="mx-auto grid min-h-[calc(100svh-8rem)] max-w-[1600px] lg:grid-cols-[0.92fr_1.08fr]">
@@ -148,26 +150,26 @@ export default async function Home() {
               size="lg"
               className="mt-9 h-12 rounded-none border-primary-foreground/30 bg-transparent px-7 text-primary-foreground hover:bg-primary-foreground hover:text-primary"
             >
-              <Link href="#newsletter">Follow our story</Link>
+              <Link href={feedback.length ? "#customer-love" : "#feedback"}>Follow our story</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      <section id="newsletter" className="border-b border-border">
+      <CustomerFeedbackWall feedback={feedback} />
+
+      <section id="feedback" className="border-b border-border bg-secondary/40">
         <div className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-8 lg:py-28">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-            Notes from Talié
+            Notes for Talié
           </p>
           <h2 className="mt-4 font-heading text-4xl tracking-tight sm:text-5xl">
-            Join our inner circle
+            Share your feedback
           </h2>
           <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground">
-            Be first to discover new edits, styling notes, and private offers.
+            Tell us how your pieces fit, feel, and arrived. Every note helps shape the next edit.
           </p>
-          <p className="mx-auto mt-8 max-w-md border border-border bg-background px-5 py-4 text-sm text-muted-foreground">
-            Newsletter sign-up opens soon. Until then, new edits will appear first in the shop.
-          </p>
+          <FeedbackForm />
         </div>
       </section>
     </main>

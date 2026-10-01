@@ -590,3 +590,20 @@ model DiscountCode {
   @@index([isActive])
   @@map("discount_codes")
 }
+
+model CustomerFeedback {
+  id           String   @id @default(cuid())
+  image        String
+  imageWidth   Int?
+  imageHeight  Int?
+  altText      String?
+  customerName String?
+  caption      String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@map("customer_feedback")
+}

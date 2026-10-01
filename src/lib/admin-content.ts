@@ -23,6 +23,14 @@ export const bannerInputSchema = z.object({
   { message: "The end date must be after the start date.", path: ["endDate"] },
 );
 
+export const feedbackInputSchema = z.object({
+  customerName: z.string().trim().max(80).optional().transform((value) => value || null),
+  caption: z.string().trim().max(240).optional().transform((value) => value || null),
+  altText: z.string().trim().max(255).optional().transform((value) => value || null),
+  displayOrder: z.coerce.number().int().nonnegative().max(10_000).default(0),
+  isActive: z.boolean().default(true),
+});
+
 export const policyInputSchema = z.object({
   title: z.string().trim().min(2).max(140),
   content: z.string().trim().min(20).max(50_000),
@@ -40,12 +48,13 @@ export const mediaMetadataSchema = z.object({
 });
 
 export async function getAdminContent() {
-  const [media, banners, policies] = await Promise.all([
+  const [media, banners, policies, feedback] = await Promise.all([
     prisma.media.findMany({ take: 30, orderBy: { createdAt: "desc" } }),
     prisma.banner.findMany({ orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }] }),
     prisma.policyPage.findMany({ orderBy: { type: "asc" } }),
+    prisma.customerFeedback.findMany({ orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }] }),
   ]);
-  return { media, banners, policies };
+  return { media, banners, policies, feedback };
 }
 
 export async function getActiveBanners() {
@@ -60,5 +69,14 @@ export async function getActiveBanners() {
     },
     orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
     select: { id: true, title: true, subtitle: true, image: true, ctaText: true, ctaLink: true },
+  });
+}
+
+export async function getActiveCustomerFeedback() {
+  return prisma.customerFeedback.findMany({
+    where: { isActive: true },
+    orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+    take: 24,
+    select: { id: true, image: true, imageWidth: true, imageHeight: true, altText: true, customerName: true, caption: true },
   });
 }
