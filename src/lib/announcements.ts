@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import { FREE_SHIPPING_THRESHOLD } from "./commerce";
+import { DEFAULT_SHIPPING_SETTINGS } from "./commerce";
 import { prisma } from "./prisma";
 
 /**
@@ -33,7 +33,7 @@ const storedSchema = z.object({ items: z.array(announcementSchema).max(20) });
 export type Announcement = z.output<typeof announcementSchema>;
 
 const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
-  { id: "default-delivery", text: `Free delivery on orders over EGP ${FREE_SHIPPING_THRESHOLD.toLocaleString("en-EG")}`, link: null, isActive: true, position: 0 },
+  { id: "default-delivery", text: `Free delivery on orders over EGP ${(DEFAULT_SHIPPING_SETTINGS.freeShippingThreshold ?? 0).toLocaleString("en-EG")}`, link: null, isActive: true, position: 0 },
 ];
 
 function sortAnnouncements(items: Announcement[]) {

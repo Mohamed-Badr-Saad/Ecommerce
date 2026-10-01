@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 
 import { OrderPlacedToast } from "@/components/order-placed-toast";
 import { OrderTracking } from "@/components/order-tracking";
-import { PrintOrderButton } from "@/components/print-order-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrderForConfirmation } from "@/lib/orders";
@@ -47,10 +46,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
   return (
     <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8 lg:py-24">
       {query.placed ? <OrderPlacedToast orderNumber={order.orderNumber} addressSaved={Boolean(query.addressSaved)} /> : null}
-      <div className="flex items-start justify-between gap-4">
-        <Icon className={`size-10 ${cancelled ? "text-destructive" : "text-primary"}`} aria-hidden="true" />
-        <PrintOrderButton />
-      </div>
+      <Icon className={`size-10 ${cancelled ? "text-destructive" : "text-primary"}`} aria-hidden="true" />
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{eyebrow}</p>
       <h1 className="mt-3 font-heading text-5xl">{title}</h1>
       <p className="mt-4 max-w-xl leading-7 text-muted-foreground">{summary}</p>

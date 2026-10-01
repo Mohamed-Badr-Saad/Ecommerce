@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FREE_SHIPPING_THRESHOLD, calculateMerchandiseTotals, calculateShipping, checkoutSchema } from "./commerce";
+import { DEFAULT_SHIPPING_SETTINGS, calculateMerchandiseTotals, calculateShipping, checkoutSchema } from "./commerce";
 
 describe("checkout rules", () => {
   it("uses the configured Egyptian delivery zones", () => {
@@ -10,7 +10,15 @@ describe("checkout rules", () => {
   });
 
   it("makes delivery complimentary at the storefront threshold", () => {
-    expect(calculateShipping(FREE_SHIPPING_THRESHOLD, "Aswan")).toBe(0);
+    expect(calculateShipping(2500, "Aswan")).toBe(0);
+    expect(calculateShipping(2499, "Aswan")).toBe(140);
+  });
+
+  it("uses the admin's own delivery fees and free-delivery amount", () => {
+    const settings = { freeShippingThreshold: 4000, rates: { ...DEFAULT_SHIPPING_SETTINGS.rates, Cairo: 60 } };
+    expect(calculateShipping(3000, "Cairo", settings)).toBe(60);
+    expect(calculateShipping(4000, "Cairo", settings)).toBe(0);
+    expect(calculateShipping(99999, "Cairo", { ...settings, freeShippingThreshold: null })).toBe(60);
   });
 
   it("totals product markdowns separately from the amount due", () => {

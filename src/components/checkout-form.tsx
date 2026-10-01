@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { Banknote, LoaderCircle, LockKeyhole } from "lucide-react";
 
 import { placeOrderAction } from "@/app/checkout/actions";
-import { EGYPTIAN_GOVERNORATES, calculateShipping } from "@/lib/commerce";
+import { DEFAULT_SHIPPING_SETTINGS, EGYPTIAN_GOVERNORATES, calculateShipping, type ShippingSettings } from "@/lib/commerce";
 import { formatEgp } from "@/lib/storefront";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
@@ -15,7 +15,7 @@ import { Textarea } from "./ui/textarea";
 
 type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "street" | "apartment" | "city" | "governorate" | "postalCode", string>>;
 
-export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {}, offerSaveAddress = false }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults; offerSaveAddress?: boolean }) {
+export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {}, offerSaveAddress = false, shipping = DEFAULT_SHIPPING_SETTINGS }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults; offerSaveAddress?: boolean; shipping?: ShippingSettings }) {
   const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
   const field = (name: keyof Defaults, label: string, props: React.ComponentProps<typeof Input> = {}) => (
@@ -25,7 +25,7 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
       {state.fieldErrors?.[name]?.[0] ? <p className="text-xs text-destructive">{state.fieldErrors[name][0]}</p> : null}
     </div>
   );
-  const estimatedShipping = governorate ? calculateShipping(subtotal, governorate) : null;
+  const estimatedShipping = governorate ? calculateShipping(subtotal, governorate, shipping) : null;
 
   return (
     <form action={action} className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">

@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-export const FREE_SHIPPING_THRESHOLD = 2500;
 export const CART_MAX_QUANTITY = 10;
 
 export const EGYPTIAN_GOVERNORATES = [
@@ -10,14 +9,29 @@ export const EGYPTIAN_GOVERNORATES = [
   "Qena", "Red Sea", "Sharqia", "Sohag", "South Sinai", "Suez",
 ] as const;
 
-const localRate = new Set(["Cairo", "Giza"]);
-const standardRate = new Set(["Alexandria", "Beheira", "Dakahlia", "Damietta", "Gharbia", "Ismailia", "Kafr El Sheikh", "Monufia", "Port Said", "Qalyubia", "Sharqia", "Suez"]);
+export type Governorate = (typeof EGYPTIAN_GOVERNORATES)[number];
 
-export function calculateShipping(subtotal: number, governorate: string) {
-  if (subtotal >= FREE_SHIPPING_THRESHOLD) return 0;
-  if (localRate.has(governorate)) return 85;
-  if (standardRate.has(governorate)) return 110;
-  return 140;
+/** Delivery pricing, set by the admin in Admin → Settings → Delivery. */
+export type ShippingSettings = {
+  /** Orders at or above this amount (after discounts) ship free; null turns free delivery off. */
+  freeShippingThreshold: number | null;
+  /** Delivery fee in EGP for each governorate. */
+  rates: Record<Governorate, number>;
+};
+
+const localRate = new Set<string>(["Cairo", "Giza"]);
+const standardRate = new Set<string>(["Alexandria", "Beheira", "Dakahlia", "Damietta", "Gharbia", "Ismailia", "Kafr El Sheikh", "Monufia", "Port Said", "Qalyubia", "Sharqia", "Suez"]);
+
+/** Used until the admin saves their own delivery settings. */
+export const DEFAULT_SHIPPING_SETTINGS: ShippingSettings = {
+  freeShippingThreshold: 2500,
+  rates: Object.fromEntries(EGYPTIAN_GOVERNORATES.map((name) => [name, localRate.has(name) ? 85 : standardRate.has(name) ? 110 : 140])) as Record<Governorate, number>,
+};
+
+export function calculateShipping(subtotal: number, governorate: string, settings: ShippingSettings = DEFAULT_SHIPPING_SETTINGS) {
+  if (settings.freeShippingThreshold !== null && subtotal >= settings.freeShippingThreshold) return 0;
+  const rate = settings.rates[governorate as Governorate];
+  return typeof rate === "number" ? rate : Math.max(...Object.values(settings.rates));
 }
 
 export function calculateMerchandiseTotals(lines: { price: number; compareAtPrice?: number | null; quantity: number }[]) {

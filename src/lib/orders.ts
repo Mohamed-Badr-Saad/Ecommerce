@@ -4,6 +4,7 @@ import { calculateMerchandiseTotals, calculateShipping, type CheckoutInput } fro
 import { getMutableCartId } from "./cart";
 import { evaluateDiscountRecord } from "./discount-codes";
 import { prisma } from "./prisma";
+import { getShippingSettings } from "./shipping";
 import { getCurrentSession } from "./session";
 
 export class CheckoutError extends Error {}
@@ -18,6 +19,7 @@ export async function createCodOrder(input: CheckoutInput) {
 export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string, now = new Date()) {
   const checkoutToken = randomUUID();
   const orderNumber = `TL-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${randomUUID().slice(0, 6).toUpperCase()}`;
+  const shippingSettings = await getShippingSettings();
 
   const order = await prisma.$transaction(async (tx) => {
     if (userId) {
@@ -51,7 +53,7 @@ export async function createCodOrderFromCart(cartId: string, input: CheckoutInpu
       couponDiscount = coupon.amount;
     }
     const amountDue = Math.max(0, merchandise.subtotal - couponDiscount);
-    const shippingCost = calculateShipping(amountDue, input.governorate);
+    const shippingCost = calculateShipping(amountDue, input.governorate, shippingSettings);
     const total = amountDue + shippingCost;
 
     for (const { item } of lines) {
