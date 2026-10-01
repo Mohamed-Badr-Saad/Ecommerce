@@ -58,7 +58,7 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
       address: parsed.data,
       items,
     });
-    const recorded = await recordPaymobIntention(order.id, intention.intentionOrderId, intention.metadata);
+    const recorded = await recordPaymobIntention(order.id, intention.intentionOrderId, { ...intention.metadata, checkoutUrl: intention.checkoutUrl });
     if (recorded.count !== 1) throw new PaymobError("The payment attempt could not be recorded.");
     checkoutUrl = intention.checkoutUrl;
   } catch (error) {

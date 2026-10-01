@@ -122,9 +122,11 @@ export async function markPaymobOrderPaid(orderId: string, providerTransactionId
       where: { id: payment.id },
       data: { status: "PAID", providerTransactionId, rawResponse, paidAt, failedAt: null },
     });
+    // A customer may have switched to cash on delivery while a Paymob attempt was still settling.
+    await tx.payment.updateMany({ where: { orderId, provider: "COD", status: "PENDING" }, data: { status: "FAILED", failedAt: paidAt } });
     await tx.order.update({
       where: { id: orderId },
-      data: { status: "CONFIRMED", paymentStatus: "PAID", inventoryReleasedAt: null, cancelledAt: null },
+      data: { status: "CONFIRMED", paymentStatus: "PAID", paymentMethod: "PAYMOB", inventoryReleasedAt: null, cancelledAt: null },
     });
     return tx.order.findUniqueOrThrow({ where: { id: orderId } });
   }, { isolationLevel: "Serializable" });

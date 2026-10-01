@@ -2,9 +2,11 @@ import { CheckCircle2, Clock3, PackageCheck, XCircle } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PendingPaymentActions } from "@/components/pending-payment-actions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrderForConfirmation } from "@/lib/orders";
+import { pendingPaymentOptions } from "@/lib/pending-payments";
 import { formatEgp } from "@/lib/storefront";
 
 type Props = { params: Promise<{ orderNumber: string }> };
@@ -14,6 +16,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
   const order = await getOrderForConfirmation(orderNumber);
   if (!order) notFound();
 
+  const options = pendingPaymentOptions(order);
   const paid = order.paymentStatus === "PAID";
   const cancelled = order.status === "CANCELLED" || order.paymentStatus === "FAILED";
   const pendingOnline = order.paymentMethod === "PAYMOB" && order.paymentStatus === "PENDING";
@@ -34,6 +37,7 @@ export default async function OrderConfirmationPage({ params }: Props) {
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{eyebrow}</p>
       <h1 className="mt-3 font-heading text-5xl">{title}</h1>
       <p className="mt-4 max-w-xl leading-7 text-muted-foreground">{summary}</p>
+      {options.pending ? <div className="mt-6"><PendingPaymentActions orderNumber={order.orderNumber} options={options} expiresAt={order.reservationExpiresAt?.toISOString() ?? null} /></div> : null}
       <div className="mt-10 border border-border bg-card p-6 sm:p-8">
         <div className="flex items-center gap-3"><PackageCheck className="size-5 text-primary" aria-hidden="true" /><h2 className="font-heading text-3xl">Order details</h2></div>
         <div className="mt-6 space-y-4">

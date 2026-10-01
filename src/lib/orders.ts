@@ -147,10 +147,10 @@ export async function getOrderForConfirmation(orderNumber: string) {
   if (!session || session.user.banned) return null;
   return prisma.order.findFirst({
     where: { orderNumber, userId: session.user.id },
-    include: { items: true },
+    include: { items: true, payments: { where: { provider: "PAYMOB" }, take: 1, select: { rawResponse: true } } },
   });
 }
 
 export async function getCustomerOrders(userId: string) {
-  return prisma.order.findMany({ where: { userId }, include: { items: true }, orderBy: { createdAt: "desc" } });
+  return prisma.order.findMany({ where: { userId }, include: { items: true, payments: { where: { provider: "PAYMOB" }, take: 1, select: { rawResponse: true } } }, orderBy: { createdAt: "desc" } });
 }
