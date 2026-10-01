@@ -37,7 +37,7 @@ export async function SiteHeader() {
     ...(hasAdminAccess(session?.user) ? [{ label: "Admin", href: "/admin" }] : []),
   ];
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur print:hidden">
       <AnnouncementBar announcements={announcements} />
       <div className="mx-auto grid h-20 max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-8 lg:px-12">
         <div className="flex items-center">

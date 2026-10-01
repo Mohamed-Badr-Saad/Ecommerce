@@ -41,7 +41,7 @@ export function OrderTracking({ order }: { order: TrackableOrder }) {
   return (
     <section aria-label="Delivery progress" className="mt-10 border border-border bg-card p-6 sm:p-8">
       <div className="flex items-center gap-3"><Truck className="size-5 text-primary" aria-hidden="true" /><h2 className="font-heading text-3xl">Delivery</h2></div>
-      <ol className="mt-6 grid gap-4 sm:grid-cols-4 sm:gap-2">
+      <ol className="mt-6 grid gap-4 [print-color-adjust:exact] sm:grid-cols-4 sm:gap-2">
         {steps.map((step) => (
           <li key={step.label} className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
             <span className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-xs ${step.done ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"}`}>
@@ -62,7 +62,7 @@ export function OrderTracking({ order }: { order: TrackableOrder }) {
             <p className="mt-1 select-all font-medium">{order.trackingNumber}</p>
           </div>
           {trackingUrl ? (
-            <Button asChild variant="outline" className="h-11 rounded-none">
+            <Button asChild variant="outline" className="h-11 rounded-none print:hidden">
               <a href={trackingUrl} target="_blank" rel="noopener noreferrer">Track your parcel<ExternalLink aria-hidden="true" /></a>
             </Button>
           ) : null}

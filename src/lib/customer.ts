@@ -35,6 +35,19 @@ export async function createAddressForUser(userId: string, input: unknown) {
   });
 }
 
+/**
+ * Saves the address used at checkout as the customer's first (default) address.
+ * Does nothing if they already have a saved address. Returns true when one was saved.
+ */
+export async function saveFirstAddressForUser(userId: string, input: { firstName: string; lastName: string; street: string; apartment?: string; city: string; governorate: string; postalCode?: string; phone: string }) {
+  if (await prisma.address.count({ where: { userId } })) return false;
+  await createAddressForUser(userId, {
+    firstName: input.firstName, lastName: input.lastName, street: input.street, apartment: input.apartment,
+    city: input.city, governorate: input.governorate, postalCode: input.postalCode, phone: input.phone, isDefault: true,
+  });
+  return true;
+}
+
 export async function deleteAddressForUser(userId: string, addressId: string) {
   return prisma.$transaction(async (tx) => {
     const address = await tx.address.findFirst({ where: { id: addressId, userId } });

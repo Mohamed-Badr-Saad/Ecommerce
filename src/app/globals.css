@@ -100,3 +100,9 @@
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+
+/* Printing a page (e.g. an order): no toasts, plain white paper. */
+@media print {
+  [data-sonner-toaster] { display: none !important; }
+  body { background: #fff; }
+}

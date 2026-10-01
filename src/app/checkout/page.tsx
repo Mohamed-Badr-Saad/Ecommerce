@@ -22,5 +22,5 @@ export default async function CheckoutPage() {
     street: address?.street ?? "", apartment: address?.apartment ?? "", city: address?.city ?? "",
     governorate: address?.governorate ?? "", postalCode: address?.postalCode ?? "",
   };
-  return <main className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16"><CheckoutForm subtotal={cart.amountDue} originalSubtotal={cart.originalSubtotal} discount={cart.discount} coupon={cart.coupon && !cart.coupon.error ? { code: cart.coupon.code, amount: cart.couponDiscount } : null} defaults={defaults} /></main>;
+  return <main className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16"><CheckoutForm subtotal={cart.amountDue} originalSubtotal={cart.originalSubtotal} discount={cart.discount} coupon={cart.coupon && !cart.coupon.error ? { code: cart.coupon.code, amount: cart.couponDiscount } : null} defaults={defaults} offerSaveAddress={!address} /></main>;
 }

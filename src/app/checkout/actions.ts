@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { checkoutSchema } from "@/lib/commerce";
+import { saveFirstAddressForUser } from "@/lib/customer";
 import { CheckoutError, createCodOrder } from "@/lib/orders";
 import { getCurrentSession } from "@/lib/session";
 
@@ -24,5 +25,16 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
     console.error("[checkout] COD order failed", { name: error instanceof Error ? error.name : "UnknownError", code });
     return { error: error instanceof CheckoutError ? error.message : "We could not place your order. Please try again." };
   }
-  redirect(`/order-confirmation/${result.orderNumber}`);
+
+  // Optional: keep the delivery address for next time. A failure here never affects the order.
+  let addressSaved = false;
+  if (formData.get("saveAddress") === "on") {
+    try {
+      addressSaved = await saveFirstAddressForUser(session.user.id, parsed.data);
+    } catch (error) {
+      console.error("[checkout] Could not save the address", { name: error instanceof Error ? error.name : "UnknownError" });
+    }
+  }
+  // ?placed shows a one-time confirmation toast on the order page.
+  redirect(`/order-confirmation/${result.orderNumber}?placed=1${addressSaved ? "&addressSaved=1" : ""}`);
 }

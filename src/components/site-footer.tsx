@@ -10,7 +10,7 @@ const footerLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="bg-secondary/55">
+    <footer className="bg-secondary/55 print:hidden">
       <div className="mx-auto grid max-w-[1600px] gap-12 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr] lg:px-12">
         <div>
           <Link href="/" aria-label="Talié home"><BrandLogo /></Link>

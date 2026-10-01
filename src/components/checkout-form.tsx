@@ -7,6 +7,7 @@ import { placeOrderAction } from "@/app/checkout/actions";
 import { EGYPTIAN_GOVERNORATES, calculateShipping } from "@/lib/commerce";
 import { formatEgp } from "@/lib/storefront";
 import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -14,7 +15,7 @@ import { Textarea } from "./ui/textarea";
 
 type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "street" | "apartment" | "city" | "governorate" | "postalCode", string>>;
 
-export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {} }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults }) {
+export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {}, offerSaveAddress = false }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults; offerSaveAddress?: boolean }) {
   const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
   const field = (name: keyof Defaults, label: string, props: React.ComponentProps<typeof Input> = {}) => (
@@ -48,6 +49,16 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
             {state.fieldErrors?.governorate?.[0] ? <p className="text-xs text-destructive">{state.fieldErrors.governorate[0]}</p> : null}
           </div>
           {field("postalCode", "Postal code", { autoComplete: "postal-code" })}
+          {offerSaveAddress ? (
+            // Only offered while the customer has no saved address yet.
+            <div className="flex items-start gap-3 border border-border bg-card p-4 sm:col-span-2">
+              <Checkbox id="checkout-save-address" name="saveAddress" defaultChecked className="mt-0.5" />
+              <Label htmlFor="checkout-save-address" className="block font-normal leading-5">
+                <span className="block font-medium">Save this address to my account</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">We’ll fill it in for you next time. You can change it anytime in My account → Addresses.</span>
+              </Label>
+            </div>
+          ) : null}
           <div className="space-y-2 sm:col-span-2"><Label htmlFor="checkout-notes">Order notes</Label><Textarea id="checkout-notes" name="notes" className="min-h-28 rounded-none bg-card" /></div>
         </div>
       </section>
