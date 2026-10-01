@@ -36,7 +36,7 @@ export function toDiscountRule(record: DiscountRecord): DiscountRule {
   };
 }
 
-/** Orders that still hold a code: everything except cancelled orders (expired Paymob reservations are cancelled). */
+/** Orders that still hold a code: everything except cancelled orders. */
 export async function countDiscountUsage(db: Db, discountCodeId: string, userId?: string | null) {
   const where = { discountCodeId, status: { not: "CANCELLED" as const } };
   const [totalUses, customerUses] = await Promise.all([

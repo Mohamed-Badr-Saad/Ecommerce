@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="grid gap-5 text-sm">
             <div className="flex gap-3"><Truck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Egypt-wide delivery</p><p className="mt-1 text-muted-foreground">Shipping rates are confirmed at checkout.</p></div></div>
             <div className="flex gap-3"><RotateCcw className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Easy returns</p><p className="mt-1 text-muted-foreground">Not the right fit? Contact us with your order number and we’ll help.</p></div></div>
-            <div className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Secure shopping</p><p className="mt-1 text-muted-foreground">Pay securely by card with Paymob or choose cash on delivery.</p></div></div>
+            <div className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Cash on delivery</p><p className="mt-1 text-muted-foreground">Pay in cash when your order arrives at your door.</p></div></div>
           </div>
         </section>
       </div>

@@ -1,11 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-import type { Prisma } from "../generated/prisma/client";
 import { calculateMerchandiseTotals, calculateShipping, type CheckoutInput } from "./commerce";
 import { getMutableCartId } from "./cart";
 import { evaluateDiscountRecord } from "./discount-codes";
 import { prisma } from "./prisma";
-import { PAYMENT_RESERVATION_MS } from "./reservations";
 import { getCurrentSession } from "./session";
 
 export class CheckoutError extends Error {}
@@ -16,34 +14,19 @@ export async function createCodOrder(input: CheckoutInput) {
   return createCodOrderFromCart(cartId, input, session.user.id);
 }
 
-export async function createPaymobOrder(input: CheckoutInput) {
-  const [cartId, session] = await Promise.all([getMutableCartId(), getCurrentSession()]);
-  if (!session || session.user.banned) throw new CheckoutError("Sign in to place your order.");
-  return createPaymobOrderFromCart(cartId, input, session.user.id);
-}
-
-export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string) {
-  return createOrderFromCart(cartId, input, "COD", userId);
-}
-
-export async function createPaymobOrderFromCart(cartId: string, input: CheckoutInput, userId?: string, now = new Date()) {
-  return createOrderFromCart(cartId, input, "PAYMOB", userId, now);
-}
-
-async function createOrderFromCart(cartId: string, input: CheckoutInput, paymentMethod: "COD" | "PAYMOB", userId?: string, now = new Date()) {
+/** Turns the bag into a cash-on-delivery order: stock is taken and the bag is emptied in one transaction. */
+export async function createCodOrderFromCart(cartId: string, input: CheckoutInput, userId?: string, now = new Date()) {
   const checkoutToken = randomUUID();
   const orderNumber = `TL-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${randomUUID().slice(0, 6).toUpperCase()}`;
-  const reservationExpiresAt = paymentMethod === "PAYMOB" ? new Date(now.getTime() + PAYMENT_RESERVATION_MS) : null;
 
   const order = await prisma.$transaction(async (tx) => {
     if (userId) {
       const openOrders = await tx.order.count({
         where: {
           userId,
-          OR: [
-            { paymentMethod: "PAYMOB", paymentStatus: "PENDING", reservationExpiresAt: { gt: now } },
-            { paymentMethod: "COD", paymentStatus: "UNPAID", status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED"] } },
-          ],
+          paymentMethod: "COD",
+          paymentStatus: "UNPAID",
+          status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED"] },
         },
       });
       if (openOrders >= 3) throw new CheckoutError("You already have several open orders. Complete or receive one before placing another.");
@@ -85,11 +68,10 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
         orderNumber,
         checkoutToken,
         userId,
-        status: paymentMethod === "COD" ? "CONFIRMED" : "PENDING",
-        paymentStatus: paymentMethod === "COD" ? "UNPAID" : "PENDING",
-        paymentMethod,
+        status: "CONFIRMED",
+        paymentStatus: "UNPAID",
+        paymentMethod: "COD",
         inventoryReservedAt: now,
-        reservationExpiresAt,
         subtotal: merchandise.originalSubtotal,
         shippingCost,
         discount: merchandise.discount + couponDiscount,
@@ -117,7 +99,7 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
           price,
           total: lineTotal,
         })) },
-        payments: { create: { provider: paymentMethod, status: "PENDING", amount: total, currency: "EGP", idempotencyKey: `${paymentMethod.toLowerCase()}:${checkoutToken}` } },
+        payments: { create: { provider: "COD", status: "PENDING", amount: total, currency: "EGP", idempotencyKey: `cod:${checkoutToken}` } },
       },
     });
     await tx.cartItem.deleteMany({ where: { cartId } });
@@ -125,21 +107,7 @@ async function createOrderFromCart(cartId: string, input: CheckoutInput, payment
     return saved;
   }, { isolationLevel: "Serializable" });
 
-  return { orderId: order.id, cartId, orderNumber: order.orderNumber, checkoutToken: order.checkoutToken, reservationExpiresAt: order.reservationExpiresAt };
-}
-
-export async function getPaymobOrderForIntention(orderId: string) {
-  return prisma.order.findFirstOrThrow({
-    where: { id: orderId, paymentMethod: "PAYMOB", paymentStatus: "PENDING" },
-    include: { items: true },
-  });
-}
-
-export async function recordPaymobIntention(orderId: string, intentionOrderId: string, rawResponse: Prisma.InputJsonValue) {
-  return prisma.payment.updateMany({
-    where: { orderId, provider: "PAYMOB", status: "PENDING", providerIntentionId: null },
-    data: { providerIntentionId: intentionOrderId, rawResponse },
-  });
+  return { orderId: order.id, cartId, orderNumber: order.orderNumber, checkoutToken: order.checkoutToken };
 }
 
 export async function getOrderForConfirmation(orderNumber: string) {
@@ -147,10 +115,10 @@ export async function getOrderForConfirmation(orderNumber: string) {
   if (!session || session.user.banned) return null;
   return prisma.order.findFirst({
     where: { orderNumber, userId: session.user.id },
-    include: { items: true, payments: { where: { provider: "PAYMOB" }, take: 1, select: { rawResponse: true } } },
+    include: { items: true },
   });
 }
 
 export async function getCustomerOrders(userId: string) {
-  return prisma.order.findMany({ where: { userId }, include: { items: true, payments: { where: { provider: "PAYMOB" }, take: 1, select: { rawResponse: true } } }, orderBy: { createdAt: "desc" } });
+  return prisma.order.findMany({ where: { userId }, include: { items: true }, orderBy: { createdAt: "desc" } });
 }

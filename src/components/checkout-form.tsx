@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Banknote, CreditCard, LoaderCircle, LockKeyhole } from "lucide-react";
+import { Banknote, LoaderCircle, LockKeyhole } from "lucide-react";
 
 import { placeOrderAction } from "@/app/checkout/actions";
 import { EGYPTIAN_GOVERNORATES, calculateShipping } from "@/lib/commerce";
@@ -17,7 +17,6 @@ type Defaults = Partial<Record<"firstName" | "lastName" | "email" | "phone" | "s
 export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = null, defaults = {} }: { subtotal: number; originalSubtotal: number; discount: number; coupon?: { code: string; amount: number } | null; defaults?: Defaults }) {
   const [state, action, pending] = useActionState(placeOrderAction, {});
   const [governorate, setGovernorate] = useState(defaults.governorate ?? "");
-  const [paymentMethod, setPaymentMethod] = useState<"PAYMOB" | "COD">("PAYMOB");
   const field = (name: keyof Defaults, label: string, props: React.ComponentProps<typeof Input> = {}) => (
     <div className="space-y-2">
       <Label htmlFor={`checkout-${name}`}>{label}</Label>
@@ -55,19 +54,11 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
 
       <aside className="h-fit border border-border bg-secondary/45 p-6 lg:sticky lg:top-32">
         <h2 className="font-heading text-3xl">Payment</h2>
-        <fieldset className="mt-5 space-y-3">
-          <legend className="sr-only">Choose a payment method</legend>
-          <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "PAYMOB" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
-            <input type="radio" name="paymentMethod" value="PAYMOB" checked={paymentMethod === "PAYMOB"} onChange={() => setPaymentMethod("PAYMOB")} className="mt-1 accent-primary" />
-            <CreditCard className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <span><span className="block font-medium">Pay online</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pay securely by card. You’ll finish payment on Paymob’s secure page.</span></span>
-          </label>
-          <label className={`flex cursor-pointer gap-3 border p-4 transition-colors ${paymentMethod === "COD" ? "border-primary bg-card" : "border-border bg-transparent"}`}>
-            <input type="radio" name="paymentMethod" value="COD" checked={paymentMethod === "COD"} onChange={() => setPaymentMethod("COD")} className="mt-1 accent-primary" />
-            <Banknote className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <span><span className="block font-medium">Cash on delivery</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pay in cash when your Talié order arrives.</span></span>
-          </label>
-        </fieldset>
+        {/* Cash on delivery is the only payment option in this release. */}
+        <div className="mt-5 flex gap-3 border border-primary bg-card p-4">
+          <Banknote className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+          <span><span className="block font-medium">Cash on delivery</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pay in cash when your Talié order arrives.</span></span>
+        </div>
         <dl className="mt-7 space-y-4 border-y border-border py-5 text-sm">
           <div className="flex justify-between"><dt>Items</dt><dd>{formatEgp(originalSubtotal)}</dd></div>
           {discount > 0 ? <div className="flex justify-between text-emerald-700"><dt>Sale savings</dt><dd>−{formatEgp(discount)}</dd></div> : null}
@@ -76,8 +67,8 @@ export function CheckoutForm({ subtotal, originalSubtotal, discount, coupon = nu
           <div className="flex justify-between font-medium"><dt>Total</dt><dd>{formatEgp(subtotal + (estimatedShipping ?? 0))}</dd></div>
         </dl>
         {state.error ? <p role="alert" className="mt-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{state.error}</p> : null}
-        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}{paymentMethod === "PAYMOB" ? "Continue to secure payment" : "Place order — pay on delivery"}</Button>
-        <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground"><LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> {paymentMethod === "PAYMOB" ? "Stock is reserved for one hour while you complete payment." : "Stock is committed when your COD order is placed."}</p>
+        <Button type="submit" className="mt-6 h-12 w-full rounded-none" disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : null}Place order — pay on delivery</Button>
+        <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground"><LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> Your pieces are set aside for you as soon as you place the order.</p>
       </aside>
     </form>
   );

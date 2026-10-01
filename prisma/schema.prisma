@@ -50,6 +50,8 @@ enum PaymentStatus {
   REFUNDED
 }
 
+// Checkout offers cash on delivery only in this release. PAYMOB stays in the
+// database so earlier online-payment orders can still be read.
 enum PaymentProvider {
   COD
   PAYMOB

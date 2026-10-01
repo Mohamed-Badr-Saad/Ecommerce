@@ -38,10 +38,10 @@ export async function logAdminActivity(adminId: string, input: z.input<typeof ac
 
 export async function getAdminDashboard() {
   const lowStockThreshold = 5;
-  const [revenue, orderCount, pendingPayments, customerCount, activeProducts, lowStockCount, recentOrders, lowStockVariants, recentActivity] = await Promise.all([
+  const [revenue, orderCount, ordersToPrepare, customerCount, activeProducts, lowStockCount, recentOrders, lowStockVariants, recentActivity] = await Promise.all([
     prisma.order.aggregate({ where: { paymentStatus: "PAID" }, _sum: { total: true } }),
     prisma.order.count(),
-    prisma.order.count({ where: { paymentMethod: "PAYMOB", paymentStatus: "PENDING" } }),
+    prisma.order.count({ where: { status: { in: ["CONFIRMED", "PROCESSING"] } } }),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
     prisma.product.count({ where: { status: "ACTIVE" } }),
     prisma.productVariant.count({ where: { stockQuantity: { lte: lowStockThreshold }, product: { status: "ACTIVE" } } }),
@@ -54,7 +54,7 @@ export async function getAdminDashboard() {
     metrics: {
       paidRevenue: Number(revenue._sum.total ?? 0),
       orderCount,
-      pendingPayments,
+      ordersToPrepare,
       customerCount,
       activeProducts,
       lowStockCount,

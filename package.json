@@ -20,7 +20,6 @@
     "test:db": "vitest run --no-file-parallelism --testTimeout=15000 --hookTimeout=20000 src/lib/prisma.db.test.ts src/lib/catalog.db.test.ts src/lib/customer.db.test.ts src/lib/auth.db.test.ts src/lib/commerce.db.test.ts src/lib/admin.db.test.ts src/lib/admin-catalog.db.test.ts src/lib/admin-orders.db.test.ts src/lib/admin-operations.db.test.ts",
     "test:e2e:commerce": "tsx scripts/verify-commerce.ts",
     "test:e2e:cart-discount": "tsx scripts/verify-cart-discount.ts",
-    "test:e2e:paymob": "node --use-system-ca --import tsx scripts/verify-paymob.ts",
     "test:e2e:admin": "tsx scripts/verify-admin.ts",
     "test:e2e:admin-catalog": "tsx scripts/verify-admin-catalog.ts",
     "test:e2e:admin-operations": "tsx scripts/verify-admin-operations.ts",

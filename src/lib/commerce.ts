@@ -33,7 +33,6 @@ export function calculateMerchandiseTotals(lines: { price: number; compareAtPric
 export const cartQuantitySchema = z.coerce.number().int().min(1).max(CART_MAX_QUANTITY);
 
 export const checkoutSchema = z.object({
-  paymentMethod: z.enum(["COD", "PAYMOB"]).default("COD"),
   firstName: z.string().trim().min(2).max(60),
   lastName: z.string().trim().min(2).max(60),
   email: z.email().trim().toLowerCase(),

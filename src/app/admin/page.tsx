@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, Boxes, CreditCard, PackageCheck, Shirt, UsersRound } from "lucide-react";
+import { AlertTriangle, Banknote, Boxes, PackageCheck, PackageOpen, Shirt, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ export default async function AdminDashboardPage() {
   const metricCards = [
     { label: "Sales (paid)", value: formatEgp(dashboard.metrics.paidRevenue), icon: Banknote },
     { label: "All orders", value: dashboard.metrics.orderCount.toLocaleString("en-EG"), icon: PackageCheck },
-    { label: "Awaiting online payment", value: dashboard.metrics.pendingPayments.toLocaleString("en-EG"), icon: CreditCard },
+    { label: "Orders to prepare", value: dashboard.metrics.ordersToPrepare.toLocaleString("en-EG"), icon: PackageOpen },
     { label: "Customers", value: dashboard.metrics.customerCount.toLocaleString("en-EG"), icon: UsersRound },
     { label: "Active products", value: dashboard.metrics.activeProducts.toLocaleString("en-EG"), icon: Shirt },
     { label: "Low-stock items", value: dashboard.metrics.lowStockCount.toLocaleString("en-EG"), icon: AlertTriangle },
