@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { AdminMediaUploader } from "@/components/admin-media-uploader";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,19 @@ export default async function AdminContentPage() {
     <p className="mt-3 text-muted-foreground">Upload approved imagery and maintain the homepage hero, banners, customer feedback, and policy copy.</p>
     <div className="mt-8 grid gap-6 xl:grid-cols-2">
       <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Media library</CardTitle></CardHeader><CardContent>
+        <p className="mb-5 text-sm leading-6 text-muted-foreground">Every image uploaded anywhere in the admin (products, banners, customer feedback, or here) is stored once in Supabase Storage and listed here. Use it to fix alt text and to delete files nothing uses anymore. Showing the 30 most recent; click a thumbnail to enlarge.</p>
         <AdminMediaUploader enabled={uploadsEnabled} label="media images" />
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2">{media.map((item) => <li key={item.id} className="min-w-0 border p-3"><div className="relative mb-3 aspect-square overflow-hidden bg-muted"><Image src={item.url} alt="" fill sizes="(min-width: 1280px) 20vw, 50vw" className="object-cover" /></div><p className="truncate text-sm font-medium">{item.originalName}</p><p className="mt-1 text-xs text-muted-foreground">{item.mimeType} · {(item.size / 1024).toFixed(0)} KB{item.width && item.height ? ` · ${item.width} × ${item.height}` : ""}</p><form action={updateMediaAction.bind(null, item.id)} className="mt-3 grid gap-2"><Input name="altText" defaultValue={item.altText ?? ""} aria-label="Media alt text" required maxLength={255} /><Button variant="outline" size="sm" className="rounded-none">Save alt text</Button></form><form action={deleteMediaAction.bind(null, item.id)} className="mt-2"><ConfirmSubmitButton message="Permanently delete this unused media file from Supabase Storage?">Delete media</ConfirmSubmitButton></form></li>)}</ul>
+        {media.length ? <ul className="mt-5 max-h-[32rem] divide-y overflow-y-auto overscroll-contain border">{media.map((item) => <li key={item.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 p-3">
+          <ImageLightbox src={item.url} alt={item.altText || item.originalName} className="relative size-16 overflow-hidden bg-muted outline-offset-2 hover:opacity-90"><Image src={item.url} alt="" fill sizes="64px" className="object-cover" /></ImageLightbox>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{item.originalName}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{item.mimeType.replace("image/", "").toUpperCase()} · {(item.size / 1024).toFixed(0)} KB{item.width && item.height ? ` · ${item.width} × ${item.height}` : ""}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <form action={updateMediaAction.bind(null, item.id)} className="flex min-w-0 flex-1 gap-2"><Input name="altText" defaultValue={item.altText ?? ""} aria-label="Media alt text" required maxLength={255} className="h-8 min-w-0 text-xs" /><Button variant="outline" size="sm" className="h-8 rounded-none">Save</Button></form>
+              <form action={deleteMediaAction.bind(null, item.id)}><ConfirmSubmitButton message="Permanently delete this unused media file from Supabase Storage?">Delete</ConfirmSubmitButton></form>
+            </div>
+          </div>
+        </li>)}</ul> : null}
         {!media.length ? <p className="mt-5 text-center text-sm text-muted-foreground">No uploaded media yet.</p> : null}
       </CardContent></Card>
       <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Homepage banners</CardTitle></CardHeader><CardContent>
@@ -48,7 +60,7 @@ export default async function AdminContentPage() {
         <div className="mt-7 space-y-4">{banners.map((banner) => <details key={banner.id} className="border" open={banners.length === 1}>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4"><span className="min-w-0"><span className="block truncate font-medium">{banner.title}</span><span className="mt-1 flex flex-wrap gap-2"><Badge variant="outline" className="rounded-none">{banner.isActive ? "active" : "inactive"}</Badge><span className="text-xs text-muted-foreground">order {banner.displayOrder}</span></span></span><span className="text-sm text-muted-foreground">Edit</span></summary>
           <div className="border-t p-4">
-            <div className="relative mb-4 aspect-video overflow-hidden bg-muted"><Image src={banner.image} alt="" fill sizes="(min-width: 1280px) 40vw, 100vw" className="object-cover" /></div>
+            <ImageLightbox src={banner.image} alt={banner.title} className="relative mb-4 block aspect-video w-48 overflow-hidden bg-muted hover:opacity-90"><Image src={banner.image} alt="" fill sizes="192px" className="object-cover" /></ImageLightbox>
             <form action={updateBannerAction.bind(null, banner.id)} className="grid gap-3 sm:grid-cols-2">
               <Input name="title" defaultValue={banner.title} aria-label="Banner title" required /><Input name="subtitle" defaultValue={banner.subtitle ?? ""} aria-label="Banner subtitle" placeholder="Subtitle" />
               <input type="hidden" name="image" value={banner.image} /><div className="sm:col-span-2"><AdminMediaUploader enabled={uploadsEnabled} fieldName="image" label="replacement banner image" multiple={false} /></div>
@@ -78,17 +90,22 @@ export default async function AdminContentPage() {
           <p className="text-xs text-muted-foreground">Name and caption apply to every screenshot in this upload; edit each one individually below.</p>
         </div>
       </form>
-      {feedback.length ? <ul className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">{feedback.map((item) => <li key={item.id} className="min-w-0 border p-3">
-        <div className="relative mb-3 aspect-[3/4] overflow-hidden bg-muted"><Image src={item.image} alt={item.altText ?? "Customer feedback screenshot"} fill sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 28vw, (min-width: 640px) 45vw, 100vw" className="object-contain" /></div>
-        <div className="mb-3 flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-none">{item.isActive ? "visible" : "hidden"}</Badge><span className="text-xs text-muted-foreground">order {item.displayOrder}</span></div>
-        <form action={updateFeedbackAction.bind(null, item.id)} className="grid gap-2">
-          <Input name="customerName" defaultValue={item.customerName ?? ""} maxLength={80} aria-label="Customer name" placeholder="Customer name" />
-          <Textarea name="caption" defaultValue={item.caption ?? ""} maxLength={240} rows={2} aria-label="Caption" placeholder="Caption" />
-          <Input name="altText" defaultValue={item.altText ?? ""} maxLength={255} aria-label="Alt text" placeholder="Alt text" />
-          <div className="grid grid-cols-[5rem_1fr] items-center gap-2"><Input name="displayOrder" type="number" min="0" defaultValue={item.displayOrder} aria-label="Display order" /><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked={item.isActive} /> Visible</label></div>
-          <Button variant="outline" size="sm" className="rounded-none">Save</Button>
-        </form>
-        <div className="mt-2 flex flex-wrap justify-between gap-2"><form action={toggleFeedbackAction.bind(null, item.id)}><Button variant="ghost" size="sm" className="rounded-none">{item.isActive ? "Hide" : "Show"}</Button></form><form action={deleteFeedbackAction.bind(null, item.id)}><ConfirmSubmitButton message="Remove this screenshot from the feedback wall? The image stays in the media library.">Delete</ConfirmSubmitButton></form></div>
+      {feedback.length ? <ul className="mt-7 max-h-[36rem] divide-y overflow-y-auto overscroll-contain border">{feedback.map((item) => <li key={item.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[5rem_minmax(0,1fr)]">
+        <ImageLightbox src={item.image} alt={item.altText ?? "Customer feedback screenshot"} caption={item.caption || item.customerName ? `${item.caption ?? ""}${item.customerName ? ` — ${item.customerName}` : ""}` : undefined} className="relative h-24 w-16 overflow-hidden bg-muted hover:opacity-90 sm:h-28 sm:w-20"><Image src={item.image} alt="" fill sizes="80px" className="object-cover object-top" /></ImageLightbox>
+        <div className="min-w-0">
+          <form action={updateFeedbackAction.bind(null, item.id)} className="grid gap-2 sm:grid-cols-2">
+            <Input name="customerName" defaultValue={item.customerName ?? ""} maxLength={80} aria-label="Customer name" placeholder="Customer name" className="h-8 text-xs" />
+            <Input name="altText" defaultValue={item.altText ?? ""} maxLength={255} aria-label="Alt text" placeholder="Alt text" className="h-8 text-xs" />
+            <Input name="caption" defaultValue={item.caption ?? ""} maxLength={240} aria-label="Caption" placeholder="Caption" className="h-8 text-xs sm:col-span-2" />
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+              <Input name="displayOrder" type="number" min="0" defaultValue={item.displayOrder} aria-label="Display order" className="h-8 w-20 text-xs" />
+              <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="isActive" defaultChecked={item.isActive} /> Visible</label>
+              <Badge variant="outline" className="rounded-none">{item.isActive ? "visible" : "hidden"}</Badge>
+              <Button variant="outline" size="sm" className="ml-auto h-8 rounded-none">Save</Button>
+            </div>
+          </form>
+          <div className="mt-2 flex flex-wrap justify-end gap-2"><form action={toggleFeedbackAction.bind(null, item.id)}><Button variant="ghost" size="sm" className="h-8 rounded-none">{item.isActive ? "Hide" : "Show"}</Button></form><form action={deleteFeedbackAction.bind(null, item.id)}><ConfirmSubmitButton message="Remove this screenshot from the feedback wall? The image stays in the media library.">Delete</ConfirmSubmitButton></form></div>
+        </div>
       </li>)}</ul> : <p className="mt-7 border border-dashed p-6 text-center text-sm text-muted-foreground">No feedback yet. Upload customer screenshots above to start the homepage feedback wall.</p>}
     </CardContent></Card>
     <Card className="mt-6 rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Policy content</CardTitle></CardHeader><CardContent><div className="grid gap-5 lg:grid-cols-2">{policies.map((policy) => <form key={policy.id} action={updatePolicyAction.bind(null, policy.id)} className="grid gap-3 border p-4"><div><Label htmlFor={`title-${policy.id}`}>{policy.type.toLowerCase()}</Label><Input id={`title-${policy.id}`} name="title" defaultValue={policy.title} required /></div><Textarea name="content" defaultValue={policy.content} rows={7} minLength={20} required /><Button variant="outline" className="rounded-none">Save policy</Button></form>)}</div></CardContent></Card>
