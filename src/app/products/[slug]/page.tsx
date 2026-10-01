@@ -57,7 +57,7 @@ export default async function ProductPage({ params }: Props) {
             <Badge variant={inStock ? "secondary" : "outline"} className="ml-auto rounded-none">{inStock ? product.stockQuantity <= product.lowStockThreshold ? "Low stock" : "In stock" : "Sold out"}</Badge>
           </div>
           <p className="mt-7 leading-7 text-muted-foreground">{product.description}</p>
-          <ProductOptions productId={product.id} variants={product.variants.map((variant) => ({ id: variant.id, title: variant.title, color: variant.color, colorHex: variant.colorHex, size: variant.size, stockQuantity: variant.stockQuantity }))} />
+          <ProductOptions productId={product.id} productTitle={product.title} productStock={product.stockQuantity} variants={product.variants.map((variant) => ({ id: variant.id, title: variant.title, color: variant.color, colorHex: variant.colorHex, size: variant.size, stockQuantity: variant.stockQuantity }))} />
           <Separator className="my-8" />
           <div className="grid gap-5 text-sm">
             <div className="flex gap-3"><Truck className="mt-0.5 size-5 text-primary" /><div><p className="font-medium">Egypt-wide delivery</p><p className="mt-1 text-muted-foreground">Shipping rates are confirmed at checkout.</p></div></div>
