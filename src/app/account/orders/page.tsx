@@ -35,7 +35,10 @@ export default async function OrdersPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-wrap justify-between gap-3 text-sm text-muted-foreground">
-                  <span>{order.items.reduce((sum, item) => sum + item.quantity, 0)} items · {paymentLabels[order.paymentMethod]}</span>
+                  <span>
+                    {order.items.reduce((sum, item) => sum + item.quantity, 0)} items · {paymentLabels[order.paymentMethod]}
+                    {order.trackingNumber && ["SHIPPED", "DELIVERED"].includes(order.status) ? <span className="mt-1 block text-foreground">Tracking: <span className="font-medium">{order.trackingNumber}</span> · view details to track</span> : null}
+                  </span>
                   <span>{formatEgp(Number(order.total))}</span>
                 </CardContent>
               </Card>

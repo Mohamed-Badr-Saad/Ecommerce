@@ -1,7 +1,8 @@
-import { CheckCircle2, PackageCheck, XCircle } from "lucide-react";
+import { CheckCircle2, PackageCheck, Truck, XCircle } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { OrderTracking } from "@/components/order-tracking";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrderForConfirmation } from "@/lib/orders";
@@ -16,14 +17,27 @@ export default async function OrderConfirmationPage({ params }: Props) {
 
   const paid = order.paymentStatus === "PAID";
   const cancelled = order.status === "CANCELLED" || order.paymentStatus === "FAILED";
-  const Icon = cancelled ? XCircle : CheckCircle2;
-  const eyebrow = cancelled ? "Order cancelled" : "Order confirmed";
-  const title = cancelled ? "This order was cancelled." : `Thank you, ${order.customerName.split(" ")[0]}.`;
+  const shipped = order.status === "SHIPPED";
+  const delivered = order.status === "DELIVERED";
+  const Icon = cancelled ? XCircle : shipped ? Truck : CheckCircle2;
+  const eyebrow = cancelled ? "Order cancelled" : delivered ? "Delivered" : shipped ? "On its way" : "Order confirmed";
+  const title = cancelled
+    ? "This order was cancelled."
+    : delivered
+      ? "Your order has arrived."
+      : shipped
+        ? "Your order is on its way."
+        : `Thank you, ${order.customerName.split(" ")[0]}.`;
+  const payment = paid
+    ? `We received your payment of ${formatEgp(Number(order.total))}.`
+    : `Payment of ${formatEgp(Number(order.total))} is due in cash on delivery.`;
   const summary = cancelled
     ? `Order ${order.orderNumber} was cancelled and its pieces were returned to stock.`
-    : paid
-      ? `We received your payment of ${formatEgp(Number(order.total))} for order ${order.orderNumber}.`
-      : `We received order ${order.orderNumber}. Payment of ${formatEgp(Number(order.total))} is due in cash on delivery.`;
+    : delivered
+      ? `Order ${order.orderNumber} was delivered. We hope you love it. ${payment}`
+      : shipped
+        ? `Order ${order.orderNumber} has left our studio.${order.trackingNumber ? " Use the tracking details below to follow it." : ""} ${payment}`
+        : `We received order ${order.orderNumber}. ${payment}`;
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8 lg:py-24">
@@ -31,7 +45,8 @@ export default async function OrderConfirmationPage({ params }: Props) {
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{eyebrow}</p>
       <h1 className="mt-3 font-heading text-5xl">{title}</h1>
       <p className="mt-4 max-w-xl leading-7 text-muted-foreground">{summary}</p>
-      <div className="mt-10 border border-border bg-card p-6 sm:p-8">
+      <OrderTracking order={order} />
+      <div className="mt-6 border border-border bg-card p-6 sm:p-8">
         <div className="flex items-center gap-3"><PackageCheck className="size-5 text-primary" aria-hidden="true" /><h2 className="font-heading text-3xl">Order details</h2></div>
         <div className="mt-6 space-y-4">
           {order.items.map((item) => <div key={item.id} className="flex justify-between gap-4 text-sm"><span>{item.quantity} × {item.title}{item.variantTitle ? ` · ${item.variantTitle}` : ""}</span><span>{formatEgp(Number(item.total))}</span></div>)}
