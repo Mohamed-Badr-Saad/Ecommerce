@@ -91,6 +91,7 @@ model User {
   orders       Order[]
   addresses    Address[]
   reviews      Review[]
+  feedbackMessages FeedbackMessage[]
   wishlist     Wishlist?
   cart         Cart?
   activityLogs AdminActivityLog[]
@@ -608,4 +609,24 @@ model CustomerFeedback {
 
   @@index([isActive, displayOrder])
   @@map("customer_feedback")
+}
+
+/// Messages sent through the homepage "Share your feedback" form, read in Admin → Feedback.
+model FeedbackMessage {
+  id        String   @id @default(cuid())
+  rating    Int
+  name      String?
+  email     String?
+  message   String   @db.Text
+  /// Set when the customer was signed in while sending it.
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Keyed hash of the sender's IP, only used to limit repeated submissions (the IP itself is never stored).
+  ipHash    String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead, createdAt])
+  @@index([ipHash, createdAt])
+  @@map("feedback_messages")
 }

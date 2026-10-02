@@ -117,7 +117,7 @@ export async function getOrderForConfirmation(orderNumber: string) {
   if (!session || session.user.banned) return null;
   return prisma.order.findFirst({
     where: { orderNumber, userId: session.user.id },
-    include: { items: true },
+    include: { items: { include: { product: { select: { slug: true } } } } },
   });
 }
 

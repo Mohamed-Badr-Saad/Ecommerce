@@ -29,8 +29,9 @@ export async function getAdminCustomers() {
   });
 }
 
-export async function getAdminReviews() {
+export async function getAdminReviews(filter: "pending" | "all" = "all") {
   return prisma.review.findMany({
+    where: filter === "pending" ? { status: "PENDING" } : {},
     orderBy: { createdAt: "desc" },
     take: 200,
     include: { product: { select: { title: true, slug: true } }, customer: { select: { name: true, email: true } } },

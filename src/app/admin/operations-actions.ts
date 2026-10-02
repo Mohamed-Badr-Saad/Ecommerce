@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { logAdminActivity } from "@/lib/admin";
 import { customerBanSchema, moderateReview, reviewModerationSchema, saveStoreProfile, setCustomerBan, storeProfileSchema } from "@/lib/admin-operations";
+import { setAdminReply } from "@/lib/product-reviews";
 import { requireAdminSession } from "@/lib/session";
 import { parseShippingForm, saveShippingSettings, SHIPPING_SETTING_KEY, ShippingSettingsError } from "@/lib/shipping";
 import { parseSocialLinksForm, saveSocialLinks, SOCIAL_LINKS_SETTING_KEY, SocialLinkError } from "@/lib/social-links";
@@ -22,6 +23,14 @@ export async function moderateReviewAction(reviewId: string, status: "APPROVED" 
   const data = reviewModerationSchema.parse({ status, rejectionReason: formData.get("rejectionReason") || undefined });
   const review = await moderateReview(reviewId, data);
   await logAdminActivity(session.user.id, { action: `${status.toLowerCase()} review`, entityType: "review", entityId: review.id });
+  revalidatePath("/admin/reviews"); revalidatePath("/products/[slug]", "page"); revalidatePath("/admin", "layout");
+}
+
+/** The store's public reply under a review (shown on the product page). An empty reply removes it. */
+export async function replyToReviewAction(reviewId: string, formData: FormData) {
+  const session = await requireAdminSession();
+  const review = await setAdminReply(reviewId, String(formData.get("reply") ?? ""));
+  await logAdminActivity(session.user.id, { action: review.adminReply ? "replied to review" : "removed review reply", entityType: "review", entityId: review.id });
   revalidatePath("/admin/reviews"); revalidatePath("/products/[slug]", "page");
 }
 

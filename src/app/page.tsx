@@ -98,7 +98,7 @@ export default async function Home() {
 
       <CustomerFeedbackWall feedback={feedback} />
 
-      <section id="feedback" className="mx-auto grid max-w-[1600px] border-b border-border lg:grid-cols-2">
+      <section  className="mx-auto grid max-w-[1600px] border-b border-border lg:grid-cols-2">
         <div className="relative flex flex-col overflow-hidden bg-primary lg:min-h-[44rem]">
           {/* Phones: photo on top, text below. Larger screens: text over the photo. */}
           <div className="relative h-72 sm:h-96 lg:absolute lg:inset-0 lg:h-auto">
@@ -107,7 +107,7 @@ export default async function Home() {
               alt="Woman in a green headscarf styled for everyday wear"
               fill
               sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover object-bottom"
+              className="object-scale-down object-center"
             />
           </div>
           <div className="absolute inset-0 hidden bg-linear-to-t from-primary via-primary/55 to-transparent lg:block" />
@@ -130,7 +130,7 @@ export default async function Home() {
             ) : null}
           </div>
         </div>
-        <div className="flex items-center bg-secondary/40 px-6 py-16 sm:px-12 lg:px-16 lg:py-20">
+        <div id="feedback" className=" flex items-center bg-secondary/40 px-6 py-16 sm:px-12 lg:px-16 lg:py-20">
           <div className="mx-auto w-full max-w-xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
               Notes for Talié

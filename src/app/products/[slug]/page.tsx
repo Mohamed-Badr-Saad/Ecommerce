@@ -5,11 +5,16 @@ import { notFound } from "next/navigation";
 
 import { ProductOptions } from "@/components/product-options";
 import { ProductImageGallery } from "@/components/product-image-gallery";
+import { ProductReviews } from "@/components/product-reviews";
+import { ReviewStars } from "@/components/review-stars";
 import { toggleWishlistAction } from "@/app/account/actions";
+import { submitReviewAction } from "@/app/reviews/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getProduct } from "@/lib/catalog";
+import { getProductReviews, getReviewEligibility } from "@/lib/product-reviews";
+import { getCurrentSession } from "@/lib/session";
 import { formatEgp } from "@/lib/storefront";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -30,6 +35,11 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
+  const session = await getCurrentSession();
+  const [{ summary, reviews }, eligibility] = await Promise.all([
+    getProductReviews(product.id),
+    getReviewEligibility(product.id, session?.user.banned ? null : session?.user.id),
+  ]);
   const inStock = product.stockQuantity > 0;
   const galleryImages = (product.images.length ? product.images : [{ id: "placeholder", url: "/products/dress-mauve.svg", altText: product.title }]).map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? product.title }));
   return (
@@ -48,6 +58,12 @@ export default async function ProductPage({ params }: Props) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{product.category.name}</p>
               <h1 className="mt-3 font-heading text-4xl leading-tight tracking-[-0.03em] sm:text-5xl">{product.title}</h1>
+              {summary.count ? (
+                <a href="#reviews" className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                  <ReviewStars rating={summary.average!} />
+                  <span>{summary.average!.toFixed(1)} · {summary.count} review{summary.count === 1 ? "" : "s"}</span>
+                </a>
+              ) : null}
             </div>
             <form action={toggleWishlistAction.bind(null, product.slug)}><Button type="submit" variant="outline" size="icon" className="shrink-0 rounded-full" aria-label={`Toggle ${product.title} in wishlist`}><Heart /></Button></form>
           </div>
@@ -66,6 +82,15 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </section>
       </div>
+
+      <ProductReviews
+        productTitle={product.title}
+        productSlug={product.slug}
+        summary={summary}
+        reviews={reviews}
+        eligibility={eligibility}
+        submitReview={submitReviewAction.bind(null, product.id, product.slug)}
+      />
     </main>
   );
 }

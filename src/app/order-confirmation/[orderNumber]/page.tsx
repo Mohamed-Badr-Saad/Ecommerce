@@ -63,7 +63,16 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
         </dl>
         <Separator className="my-6" />
         <div className="space-y-4">
-          {order.items.map((item) => <div key={item.id} className="flex justify-between gap-4 text-sm"><span>{item.quantity} × {item.title}{item.variantTitle ? ` · ${item.variantTitle}` : ""}</span><span>{formatEgp(Number(item.total))}</span></div>)}
+          {order.items.map((item) => (
+            <div key={item.id} className="flex justify-between gap-4 text-sm">
+              <span>
+                {item.quantity} × {item.title}{item.variantTitle ? ` · ${item.variantTitle}` : ""}
+                {/* Once delivered, customers can review what they bought. */}
+                {delivered ? <Link href={`/products/${item.product.slug}#write-review`} className="mt-1 block text-xs text-primary underline underline-offset-4 print:hidden">Write a review</Link> : null}
+              </span>
+              <span>{formatEgp(Number(item.total))}</span>
+            </div>
+          ))}
         </div>
         <Separator className="my-6" />
         <dl className="space-y-3 text-sm">

@@ -1,9 +1,11 @@
-import { Activity, BarChart3, Images, LayoutDashboard, PackageSearch, Settings, ShoppingBag, Star, Store, TicketPercent, UsersRound } from "lucide-react";
+import { Activity, BarChart3, Images, LayoutDashboard, MessageSquareText, PackageSearch, Settings, ShoppingBag, Star, Store, TicketPercent, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { SectionNav } from "@/components/section-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Badge } from "@/components/ui/badge";
+import { countUnreadFeedback } from "@/lib/feedback-messages";
+import { countPendingReviews } from "@/lib/product-reviews";
 import { requireAdminSession } from "@/lib/session";
 
 const navigation = [
@@ -14,6 +16,7 @@ const navigation = [
   { label: "Discounts", href: "/admin/discounts", icon: TicketPercent, available: true },
   { label: "Customers", href: "/admin/customers", icon: UsersRound, available: true },
   { label: "Reviews", href: "/admin/reviews", icon: Star, available: true },
+  { label: "Feedback", href: "/admin/feedback", icon: MessageSquareText, available: true },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3, available: true },
   { label: "Activity", href: "/admin/activity", icon: Activity, available: true },
   { label: "Settings", href: "/admin/settings", icon: Settings, available: true },
@@ -24,6 +27,9 @@ export const metadata = { title: "Admin" };
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
   const adminRole = session.user.adminRole!;
+  // Shown next to "Feedback" so new messages are easy to spot.
+  const [unreadFeedback, pendingReviews] = await Promise.all([countUnreadFeedback().catch(() => 0), countPendingReviews().catch(() => 0)]);
+  const counts: Record<string, number> = { "/admin/feedback": unreadFeedback, "/admin/reviews": pendingReviews };
   return (
     <main className="min-h-[75vh] bg-secondary/25">
       <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)] gap-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -37,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               label="Admin menu"
               rootHref="/admin"
               variant="admin"
-              items={navigation.map(({ label, href, icon: Icon }) => ({ label, href, icon: <Icon className="size-4" aria-hidden="true" /> }))}
+              items={navigation.map(({ label, href, icon: Icon }) => ({ label: counts[href] ? `${label} (${counts[href]})` : label, href, icon: <Icon className="size-4" aria-hidden="true" /> }))}
               footer={<SignOutButton />}
             />
           </div>
