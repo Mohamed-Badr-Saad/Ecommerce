@@ -50,6 +50,12 @@ Apply database migrations to the hosted database before exercising a new deploym
 npm run db:deploy
 ```
 
+## Order emails and WhatsApp updates
+
+Customers get an automatic email when they place an order and each time the admin moves it on (preparing, shipped with tracking, delivered, cancelled). Emails are sent through Resend's free plan (3,000 emails a month, 100 a day) and stay switched off until `RESEND_API_KEY` is set. To reach customers, add and verify the store's own domain in Resend, then set `RESEND_FROM_EMAIL` to an address on it (for example `Talié <orders@yourdomain.com>`); the `onboarding@resend.dev` test sender only delivers to the Resend account owner.
+
+The admin order page also has a "Send WhatsApp update" button that opens WhatsApp with a ready-written message about the order's current status; the admin presses send.
+
 ## Admin studio
 
 Administrator access is enforced from the database role on every `/admin` request; the proxy cookie check is only an early unauthenticated redirect. Administrators can open `/admin` after signing out and back in so their refreshed session contains the current role.

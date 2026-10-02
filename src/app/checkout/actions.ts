@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { checkoutSchema } from "@/lib/commerce";
 import { saveFirstAddressForUser } from "@/lib/customer";
+import { sendOrderUpdateEmail } from "@/lib/order-notifications";
 import { CheckoutError, createCodOrder } from "@/lib/orders";
 import { getCurrentSession } from "@/lib/session";
 
@@ -35,6 +36,8 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
       console.error("[checkout] Could not save the address", { name: error instanceof Error ? error.name : "UnknownError" });
     }
   }
+  // Order confirmation email (does nothing until RESEND_API_KEY is set; never blocks the order).
+  await sendOrderUpdateEmail(result.orderId);
   // ?placed shows a one-time confirmation toast on the order page.
   redirect(`/order-confirmation/${result.orderNumber}?placed=1${addressSaved ? "&addressSaved=1" : ""}`);
 }

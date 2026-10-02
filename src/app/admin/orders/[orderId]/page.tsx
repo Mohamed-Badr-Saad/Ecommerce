@@ -1,4 +1,4 @@
-import { Printer } from "lucide-react";
+import { Mail, MessageCircle, Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getAdminOrder } from "@/lib/admin-orders";
+import { emailConfigured } from "@/lib/email";
+import { buildWhatsAppOrderMessage, whatsAppLink } from "@/lib/order-messages";
+import { customerOrderUrl } from "@/lib/order-notifications";
 import { formatEgp } from "@/lib/storefront";
 import { cancelOrderAction, deliverOrderAction, processOrderAction, shipOrderAction } from "../actions";
 
@@ -20,11 +23,30 @@ export default async function AdminOrderPage({ params }: Props) {
   if (!order) notFound();
   const address = order.shippingAddress as Record<string, string | null>;
   const canProcess = ["PENDING", "CONFIRMED"].includes(order.status) && (order.paymentMethod === "COD" || order.paymentStatus === "PAID");
+  const whatsAppMessage = buildWhatsAppOrderMessage(order, customerOrderUrl(order.orderNumber));
+  const whatsAppHref = whatsAppLink(order.customerPhone, whatsAppMessage);
+  const emailsOn = emailConfigured();
   const canCancel = !["PAID", "REFUNDED"].includes(order.paymentStatus) && !["SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"].includes(order.status);
   return <section><div className="flex items-center justify-between gap-4"><Link href="/admin/orders" className="text-sm text-muted-foreground hover:text-foreground">← Orders</Link><Button asChild variant="outline" className="h-10 rounded-none"><Link href={`/admin/orders/${order.id}/print?print=1`} target="_blank" rel="noopener"><Printer aria-hidden="true" /> Print order</Link></Button></div><div className="mt-4 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[.2em] text-muted-foreground">Order</p><h2 className="mt-2 font-heading text-5xl">{order.orderNumber}</h2></div><div className="flex gap-2"><Badge className="rounded-none">{order.status.toLowerCase()}</Badge><Badge variant="outline" className="rounded-none">{order.paymentStatus.toLowerCase()}</Badge></div></div>
     <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"><Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Items</CardTitle></CardHeader><CardContent><ul className="divide-y">{order.items.map((item) => <li key={item.id} className="flex justify-between gap-4 py-4"><div><p className="font-medium">{item.title}</p><p className="text-xs text-muted-foreground">{item.variantTitle ?? "Base"} · {item.sku ?? "No SKU"} · Qty {item.quantity}</p></div><p>{formatEgp(Number(item.total))}</p></li>)}</ul><dl className="mt-5 space-y-2 border-t pt-5 text-sm"><div className="flex justify-between"><dt>Subtotal</dt><dd>{formatEgp(Number(order.subtotal))}</dd></div><div className="flex justify-between"><dt>Discount{order.discountCode ? ` · code ${order.discountCode} (−${formatEgp(Number(order.couponDiscount))})` : ""}</dt><dd>− {formatEgp(Number(order.discount))}</dd></div><div className="flex justify-between"><dt>Shipping</dt><dd>{formatEgp(Number(order.shippingCost))}</dd></div><div className="flex justify-between text-base font-semibold"><dt>Total</dt><dd>{formatEgp(Number(order.total))}</dd></div></dl></CardContent></Card>
       <div className="space-y-6"><Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Customer & delivery</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p className="font-medium">{order.customerName}</p><p>{order.customerEmail}</p><p>{order.customerPhone}</p><p className="pt-2 text-muted-foreground">{address.street}{address.apartment ? `, ${address.apartment}` : ""}<br />{address.city}, {address.governorate}<br />{address.country}</p></CardContent></Card>
         <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Fulfillment</CardTitle></CardHeader><CardContent className="grid gap-3">{canProcess ? <form action={processOrderAction.bind(null, order.id)}><Button className="w-full rounded-none">Start processing</Button></form> : null}{order.status === "PROCESSING" ? <form action={shipOrderAction.bind(null, order.id)} className="grid gap-2"><Input name="trackingNumber" placeholder="Tracking number" required /><Input name="trackingUrl" type="url" placeholder="Tracking URL (optional)" /><Button className="rounded-none">Mark shipped</Button></form> : null}{order.status === "SHIPPED" ? <form action={deliverOrderAction.bind(null, order.id)}><Button className="w-full rounded-none">Mark delivered</Button></form> : null}{canCancel ? <form action={cancelOrderAction.bind(null, order.id)}><Button variant="outline" className="w-full rounded-none">Cancel and restock</Button></form> : null}{order.trackingNumber ? <p className="text-sm text-muted-foreground">Tracking: {order.trackingNumber}</p> : null}{order.paymentStatus === "PAID" && !["DELIVERED", "REFUNDED"].includes(order.status) ? <p className="border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">This order is already paid, so it can’t be cancelled here. Refund the customer first, then restock the pieces manually.</p> : null}</CardContent></Card>
+        <Card className="rounded-none">
+          <CardHeader><CardTitle className="font-heading text-3xl">Update the customer</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 text-sm">
+            {whatsAppHref ? (
+              <Button asChild className="w-full rounded-none"><a href={whatsAppHref} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" /> Send WhatsApp update</a></Button>
+            ) : (
+              <p className="border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">The customer&apos;s phone number ({order.customerPhone}) can&apos;t be opened in WhatsApp. Check it and contact them directly.</p>
+            )}
+            <p className="text-xs text-muted-foreground">Opens WhatsApp with a ready-written message about the order&apos;s current status. Review it, then press send. Use it again after each step.</p>
+            <details className="border border-border bg-secondary/30 p-3">
+              <summary className="cursor-pointer text-xs font-medium">Preview the message</summary>
+              <p className="mt-3 whitespace-pre-wrap break-words text-xs leading-5">{whatsAppMessage}</p>
+            </details>
+            <p className="flex gap-2 border-t pt-3 text-xs text-muted-foreground"><Mail className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />{emailsOn ? `Order emails are on: ${order.customerEmail} gets an email automatically when the order is placed and at each step.` : "Automatic order emails are off. Add RESEND_API_KEY in Vercel (and a verified sending domain) to switch them on."}</p>
+          </CardContent>
+        </Card>
         <Card className="rounded-none"><CardHeader><CardTitle className="font-heading text-3xl">Payment history</CardTitle></CardHeader><CardContent>{order.payments.map((payment) => <div key={payment.id} className="space-y-2 text-sm"><div className="flex justify-between gap-3"><span>{payment.provider}</span><Badge variant="outline" className="rounded-none">{payment.status.toLowerCase()}</Badge></div>{payment.providerTransactionId ? <p className="text-xs text-muted-foreground">Transaction {payment.providerTransactionId}</p> : null}{payment.attempts.length ? <ol className="divide-y border-t">{payment.attempts.map((attempt) => <li key={attempt.id} className="flex justify-between gap-3 py-2 text-xs"><span>{attempt.providerTransactionId}</span><span>{attempt.status.toLowerCase()} · {attempt.processedAt.toLocaleString("en-EG")}</span></li>)}</ol> : null}</div>)}</CardContent></Card>
       </div></div></section>;
 }

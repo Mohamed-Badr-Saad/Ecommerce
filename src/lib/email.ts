@@ -93,3 +93,45 @@ export async function sendPasswordResetEmail({ idempotencyKey, name, resetUrl, t
 
   return { delivered: true as const };
 }
+
+type OutgoingEmail = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  /** Same key within 24 hours = Resend sends the email only once. */
+  idempotencyKey: string;
+  replyTo?: string;
+};
+
+/** Sends any transactional email through Resend. Never throws; reports what happened instead. */
+export async function sendEmail({ to, subject, html, text, idempotencyKey, replyTo }: OutgoingEmail) {
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = serverEnv;
+  if (!RESEND_API_KEY) return { delivered: false as const, reason: "not-configured" as const };
+  try {
+    const response = await fetch(resendEndpoint, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${RESEND_API_KEY}`,
+        "content-type": "application/json",
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: [to], subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      // Keep provider details and recipient addresses out of logs.
+      console.error(`Email delivery failed with provider status ${response.status}.`);
+      return { delivered: false as const, reason: "provider-error" as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error("Email delivery failed", { name: error instanceof Error ? error.name : "UnknownError" });
+    return { delivered: false as const, reason: "network-error" as const };
+  }
+}
+
+/** Whether order emails can be sent at all (an API key is configured). */
+export function emailConfigured() {
+  return Boolean(serverEnv.RESEND_API_KEY);
+}

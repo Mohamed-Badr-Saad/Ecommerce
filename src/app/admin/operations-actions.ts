@@ -6,6 +6,7 @@ import { logAdminActivity } from "@/lib/admin";
 import { customerBanSchema, moderateReview, reviewModerationSchema, saveStoreProfile, setCustomerBan, storeProfileSchema } from "@/lib/admin-operations";
 import { requireAdminSession } from "@/lib/session";
 import { parseShippingForm, saveShippingSettings, ShippingSettingsError } from "@/lib/shipping";
+import { parseSocialLinksForm, saveSocialLinks, SocialLinkError } from "@/lib/social-links";
 
 export async function setCustomerBanAction(customerId: string, banned: boolean, formData: FormData) {
   const session = await requireAdminSession();
@@ -52,3 +53,19 @@ export async function saveShippingSettingsAction(_state: ShippingFormState, form
   return { saved: true };
 }
 
+export type SocialLinksFormState = { error?: string; saved?: boolean };
+
+export async function saveSocialLinksAction(_state: SocialLinksFormState, formData: FormData): Promise<SocialLinksFormState> {
+  const session = await requireAdminSession();
+  let links: ReturnType<typeof parseSocialLinksForm>;
+  try {
+    links = parseSocialLinksForm(formData);
+  } catch (error) {
+    return { error: error instanceof SocialLinkError ? error.message : "Check the links and try again." };
+  }
+  await saveSocialLinks(links);
+  await logAdminActivity(session.user.id, { action: "updated social media links", entityType: "settings", entityId: "social-links", details: { accounts: Object.keys(links) } });
+  // The footer is on every page.
+  revalidatePath("/", "layout");
+  return { saved: true };
+}

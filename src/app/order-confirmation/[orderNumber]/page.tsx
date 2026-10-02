@@ -1,12 +1,13 @@
 import { CheckCircle2, PackageCheck, Truck, XCircle } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { OrderPlacedToast } from "@/components/order-placed-toast";
 import { OrderTracking } from "@/components/order-tracking";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getOrderForConfirmation } from "@/lib/orders";
+import { getCurrentSession } from "@/lib/session";
 import { formatEgp } from "@/lib/storefront";
 
 type Props = { params: Promise<{ orderNumber: string }>; searchParams: Promise<{ placed?: string; addressSaved?: string }> };
@@ -15,8 +16,11 @@ const placedFormat = new Intl.DateTimeFormat("en-EG", { dateStyle: "medium", tim
 
 export default async function OrderConfirmationPage({ params, searchParams }: Props) {
   const [{ orderNumber }, query] = await Promise.all([params, searchParams]);
+  // Not signed in (or the session expired): sign in, then come straight back to this order.
+  const session = await getCurrentSession();
+  if (!session) redirect(`/sign-in?callbackURL=${encodeURIComponent(`/order-confirmation/${orderNumber}`)}`);
   const order = await getOrderForConfirmation(orderNumber);
-  if (!order) notFound();
+  if (!order) return <OrderNotInAccount email={session.user.email} />;
 
   const address = order.shippingAddress as Record<string, string | null>;
   const paid = order.paymentStatus === "PAID";
@@ -78,3 +82,19 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
     </main>
   );
 }
+
+/** Shown when the signed-in customer doesn't own this order (or it doesn't exist) — without saying which. */
+function OrderNotInAccount({ email }: { email: string }) {
+  return (
+    <main className="mx-auto max-w-2xl px-5 py-20 text-center sm:px-8">
+      <PackageCheck className="mx-auto size-9 text-primary" aria-hidden="true" />
+      <h1 className="mt-5 font-heading text-4xl sm:text-5xl">We couldn&apos;t find this order in your account</h1>
+      <p className="mt-4 leading-7 text-muted-foreground">You&apos;re signed in as <span className="font-medium text-foreground">{email}</span>. If you placed the order with a different account, sign out and sign in with that one.</p>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <Button asChild className="h-12 rounded-none px-7"><Link href="/account/orders">View your orders</Link></Button>
+        <Button asChild variant="outline" className="h-12 rounded-none px-7"><Link href="/shop">Continue shopping</Link></Button>
+      </div>
+    </main>
+  );
+}
+

@@ -85,7 +85,8 @@ export function HomepageBanner({ banners }: { banners: Banner[] }) {
             />
           ))}
         </div>
-        <div className="absolute bottom-6 right-6 z-20 flex gap-2 sm:bottom-10 sm:right-10">
+        {/* Kept clear of the social media icons pinned to the bottom-right corner. */}
+        <div className="absolute bottom-6 right-20 z-20 flex gap-2 sm:bottom-10 sm:right-24">
           <Button type="button" size="icon-lg" variant="outline" className="rounded-full border-white/40 bg-black/25 text-white hover:bg-black/50 hover:text-white" onClick={() => select(active - 1)} aria-label="Previous banner"><ChevronLeft /></Button>
           <Button type="button" size="icon-lg" variant="outline" className="rounded-full border-white/40 bg-black/25 text-white hover:bg-black/50 hover:text-white" onClick={() => select(active + 1)} aria-label="Next banner"><ChevronRight /></Button>
         </div>

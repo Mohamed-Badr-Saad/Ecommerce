@@ -8,8 +8,9 @@ export function Toaster(props: ToasterProps) {
     <Sonner
       // Bottom placement keeps toasts clear of the sticky header on every screen size.
       position="bottom-right"
-      offset={24}
-      mobileOffset={16}
+      // Leave room for the social media icons pinned to the bottom-right corner.
+      offset={{ bottom: 24, right: 76 }}
+      mobileOffset={{ bottom: 80, left: 16, right: 16 }}
       duration={3500}
       closeButton
       toastOptions={{

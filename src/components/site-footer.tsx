@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
+
 const footerLinks = [
   { label: "New arrivals", href: "/#new-arrivals" },
   { label: "Collections", href: "/#collections" },

@@ -11,4 +11,5 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/account/:path*", "/admin/:path*", "/checkout"] };
+// Order pages (including links in order emails and WhatsApp messages) need the customer to sign in first.
+export const config = { matcher: ["/account/:path*", "/admin/:path*", "/checkout", "/order-confirmation/:path*"] };
