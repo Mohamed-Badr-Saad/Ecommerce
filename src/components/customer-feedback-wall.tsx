@@ -91,9 +91,22 @@ export function CustomerFeedbackWall({ feedback }: { feedback: FeedbackItem[] })
       }
       frame = requestAnimationFrame(step);
     };
-    frame = requestAnimationFrame(step);
-    return () => {
+    // Only animate while the slider is on (or near) the screen: smoother scrolling elsewhere
+    // on the page and less battery use on phones.
+    const start = () => {
+      if (frame) return;
+      last = performance.now();
+      frame = requestAnimationFrame(step);
+    };
+    const stop = () => {
       cancelAnimationFrame(frame);
+      frame = 0;
+    };
+    const observer = new IntersectionObserver(([entry]) => (entry?.isIntersecting ? start() : stop()), { rootMargin: "100px" });
+    observer.observe(viewport);
+    return () => {
+      observer.disconnect();
+      stop();
       clearTimeout(timers.current);
     };
   }, [feedback.length]);

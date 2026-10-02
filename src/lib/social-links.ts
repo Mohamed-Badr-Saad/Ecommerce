@@ -1,5 +1,6 @@
 import { toWhatsAppNumber } from "./order-messages";
 import { prisma } from "./prisma";
+import { readStoreSetting } from "./store-settings";
 
 /**
  * The store's social media accounts, shown as icons in the site footer.
@@ -7,7 +8,8 @@ import { prisma } from "./prisma";
  * `store_settings`, so no database migration is needed.
  */
 
-const SETTING_KEY = "social-links";
+export const SOCIAL_LINKS_SETTING_KEY = "social-links";
+const SETTING_KEY = SOCIAL_LINKS_SETTING_KEY;
 
 export const SOCIAL_PLATFORMS = [
   { key: "instagram", label: "Instagram", hint: "Profile link or @username", hosts: ["instagram.com"], profileUrl: (name: string) => `https://www.instagram.com/${name}` },
@@ -75,7 +77,7 @@ export function parseSocialLinksForm(formData: FormData): SocialLinks {
 
 export async function getSocialLinks(): Promise<SocialLinks> {
   try {
-    const setting = await prisma.storeSettings.findUnique({ where: { key: SETTING_KEY } });
+    const setting = await readStoreSetting(SETTING_KEY);
     const stored = (setting?.value ?? {}) as Record<string, unknown>;
     const links: SocialLinks = {};
     for (const platform of SOCIAL_PLATFORMS) {

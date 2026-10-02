@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { logAdminActivity } from "@/lib/admin";
 import { customerBanSchema, moderateReview, reviewModerationSchema, saveStoreProfile, setCustomerBan, storeProfileSchema } from "@/lib/admin-operations";
 import { requireAdminSession } from "@/lib/session";
-import { parseShippingForm, saveShippingSettings, ShippingSettingsError } from "@/lib/shipping";
-import { parseSocialLinksForm, saveSocialLinks, SocialLinkError } from "@/lib/social-links";
+import { parseShippingForm, saveShippingSettings, SHIPPING_SETTING_KEY, ShippingSettingsError } from "@/lib/shipping";
+import { parseSocialLinksForm, saveSocialLinks, SOCIAL_LINKS_SETTING_KEY, SocialLinkError } from "@/lib/social-links";
+import { refreshStoreSetting } from "@/lib/store-settings";
 
 export async function setCustomerBanAction(customerId: string, banned: boolean, formData: FormData) {
   const session = await requireAdminSession();
@@ -43,6 +44,7 @@ export async function saveShippingSettingsAction(_state: ShippingFormState, form
     return { error: error instanceof ShippingSettingsError ? error.message : "Check the delivery fees and try again." };
   }
   await saveShippingSettings(settings);
+  refreshStoreSetting(SHIPPING_SETTING_KEY);
   await logAdminActivity(session.user.id, {
     action: "updated delivery settings",
     entityType: "settings",
@@ -64,6 +66,7 @@ export async function saveSocialLinksAction(_state: SocialLinksFormState, formDa
     return { error: error instanceof SocialLinkError ? error.message : "Check the links and try again." };
   }
   await saveSocialLinks(links);
+  refreshStoreSetting(SOCIAL_LINKS_SETTING_KEY);
   await logAdminActivity(session.user.id, { action: "updated social media links", entityType: "settings", entityId: "social-links", details: { accounts: Object.keys(links) } });
   // The footer is on every page.
   revalidatePath("/", "layout");

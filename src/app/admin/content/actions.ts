@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { logAdminActivity } from "@/lib/admin";
 import { bannerInputSchema, feedbackInputSchema, policyInputSchema } from "@/lib/admin-content";
 import { storefrontImageUrlSchema } from "@/lib/media";
-import { addAnnouncement, deleteAnnouncement, toggleAnnouncement, updateAnnouncement } from "@/lib/announcements";
+import { addAnnouncement, ANNOUNCEMENTS_SETTING_KEY, deleteAnnouncement, toggleAnnouncement, updateAnnouncement } from "@/lib/announcements";
+import { refreshStoreSetting } from "@/lib/store-settings";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session";
 import { getSupabaseAdminClient, supabaseStorageBucket } from "@/lib/supabase-admin";
@@ -151,6 +152,7 @@ function announcementForm(formData: FormData) {
 }
 
 function refreshAnnouncements() {
+  refreshStoreSetting(ANNOUNCEMENTS_SETTING_KEY);
   revalidatePath("/admin/content");
   revalidatePath("/", "layout");
 }

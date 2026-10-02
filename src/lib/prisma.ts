@@ -11,7 +11,9 @@ const adapter = new PrismaPg({
   connectionString: serverEnv.DATABASE_URL,
   connectionTimeoutMillis: 10_000,
   idleTimeoutMillis: 10_000,
-  max: process.env.NODE_ENV === "production" ? 1 : 5,
+  // A few connections per server instance so lookups started together run together
+  // (Supabase's pooler handles the sharing). With 1, every query waited in line.
+  max: 5,
 });
 
 export const prisma =

@@ -2,13 +2,15 @@ import { z } from "zod";
 
 import { DEFAULT_SHIPPING_SETTINGS, EGYPTIAN_GOVERNORATES, type Governorate, type ShippingSettings } from "./commerce";
 import { prisma } from "./prisma";
+import { readStoreSetting } from "./store-settings";
 
 /**
  * Delivery fees per governorate and the free-delivery amount, edited in Admin → Settings.
  * Stored as one JSON row in `store_settings`, so no database migration is needed.
  */
 
-const SETTING_KEY = "shipping";
+export const SHIPPING_SETTING_KEY = "shipping";
+const SETTING_KEY = SHIPPING_SETTING_KEY;
 
 const fee = z.coerce.number({ error: "Enter a number." }).min(0, "Fees can't be negative.").max(10000, "That fee looks too high.");
 
@@ -19,7 +21,7 @@ const shippingSettingsSchema = z.object({
 
 export async function getShippingSettings(): Promise<ShippingSettings> {
   try {
-    const setting = await prisma.storeSettings.findUnique({ where: { key: SETTING_KEY } });
+    const setting = await readStoreSetting(SETTING_KEY);
     if (!setting) return DEFAULT_SHIPPING_SETTINGS;
     // Merge over the defaults so a governorate added later still gets a fee.
     const stored = setting.value as Partial<ShippingSettings> | null;
