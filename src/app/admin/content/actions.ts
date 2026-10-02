@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { refreshHomepageContentCache } from "@/lib/cache-tags";
 import { logAdminActivity } from "@/lib/admin";
 import { bannerInputSchema, feedbackInputSchema, policyInputSchema } from "@/lib/admin-content";
 import { storefrontImageUrlSchema } from "@/lib/media";
@@ -16,7 +17,7 @@ export async function createBannerAction(formData: FormData) {
   const data = bannerInputSchema.parse({ ...Object.fromEntries(formData), isActive: formData.get("isActive") === "on" });
   const banner = await prisma.banner.create({ data });
   await logAdminActivity(session.user.id, { action: "created banner", entityType: "banner", entityId: banner.id, details: { title: banner.title } });
-  revalidatePath("/admin/content"); revalidatePath("/");
+  refreshHomepageContentCache(); revalidatePath("/admin/content"); revalidatePath("/");
 }
 
 export async function toggleBannerAction(bannerId: string) {
@@ -24,7 +25,7 @@ export async function toggleBannerAction(bannerId: string) {
   const current = await prisma.banner.findUniqueOrThrow({ where: { id: bannerId } });
   const banner = await prisma.banner.update({ where: { id: bannerId }, data: { isActive: !current.isActive } });
   await logAdminActivity(session.user.id, { action: banner.isActive ? "activated banner" : "deactivated banner", entityType: "banner", entityId: banner.id });
-  revalidatePath("/admin/content"); revalidatePath("/");
+  refreshHomepageContentCache(); revalidatePath("/admin/content"); revalidatePath("/");
 }
 
 export async function updateBannerAction(bannerId: string, formData: FormData) {
@@ -32,14 +33,14 @@ export async function updateBannerAction(bannerId: string, formData: FormData) {
   const data = bannerInputSchema.parse({ ...Object.fromEntries(formData), isActive: formData.get("isActive") === "on" });
   const banner = await prisma.banner.update({ where: { id: bannerId }, data });
   await logAdminActivity(session.user.id, { action: "updated banner", entityType: "banner", entityId: banner.id, details: { title: banner.title } });
-  revalidatePath("/admin/content"); revalidatePath("/");
+  refreshHomepageContentCache(); revalidatePath("/admin/content"); revalidatePath("/");
 }
 
 export async function deleteBannerAction(bannerId: string) {
   const session = await requireAdminSession();
   const banner = await prisma.banner.delete({ where: { id: bannerId } });
   await logAdminActivity(session.user.id, { action: "deleted banner", entityType: "banner", entityId: banner.id, details: { title: banner.title } });
-  revalidatePath("/admin/content"); revalidatePath("/");
+  refreshHomepageContentCache(); revalidatePath("/admin/content"); revalidatePath("/");
 }
 
 export async function updateMediaAction(mediaId: string, formData: FormData) {
@@ -94,6 +95,7 @@ function parseFeedbackForm(formData: FormData) {
 }
 
 function refreshFeedback() {
+  refreshHomepageContentCache();
   revalidatePath("/admin/content");
   revalidatePath("/");
 }

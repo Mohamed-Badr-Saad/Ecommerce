@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { Prisma } from "../generated/prisma/client";
+import { CATALOG_CACHE_TAG, storefrontCache } from "./cache-tags";
 import { prisma } from "./prisma";
 
 export const CATALOG_PAGE_SIZE = 8;
@@ -122,7 +123,7 @@ function mapProduct(product: {
 
 export async function getCatalog(query: CatalogQuery, collectionSlug?: string) {
   const where = productWhere(query, collectionSlug);
-  const [total, rows, categories, collections, variants] = await Promise.all([
+  const [total, rows, filters] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({
       where,
@@ -134,22 +135,34 @@ export async function getCatalog(query: CatalogQuery, collectionSlug?: string) {
       skip: (query.page - 1) * CATALOG_PAGE_SIZE,
       take: CATALOG_PAGE_SIZE,
     }),
-    prisma.category.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
-    prisma.productCollection.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
-    prisma.productVariant.findMany({
-      where: { product: { status: "ACTIVE", ...(collectionSlug ? { collections: { some: { slug: collectionSlug } } } : {}) } },
-      select: { color: true, colorHex: true, size: true },
-    }),
+    getCatalogFilters(collectionSlug ?? ""),
   ]);
 
-  const colors = Array.from(new Map(variants.filter((item) => item.color).map((item) => [item.color!, item.colorHex])).entries())
-    .map(([name, hex]) => ({ name, hex }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const sizes = Array.from(new Set(variants.map((item) => item.size).filter((value): value is string => Boolean(value))));
   const pageCount = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
-
-  return { products: rows.map(mapProduct), total, pageCount, categories, collections, colors, sizes };
+  // Product rows stay live (prices and stock are always current); the filter lists are cached.
+  return { products: rows.map(mapProduct), total, pageCount, ...filters };
 }
+
+/** Category, collection, colour and size lists for the shop filters. Cached; refreshed when the catalog changes. */
+const getCatalogFilters = storefrontCache(
+  async (collectionSlug: string) => {
+    const [categories, collections, variants] = await Promise.all([
+      prisma.category.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
+      prisma.productCollection.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { name: true, slug: true } }),
+      prisma.productVariant.findMany({
+        where: { product: { status: "ACTIVE", ...(collectionSlug ? { collections: { some: { slug: collectionSlug } } } : {}) } },
+        select: { color: true, colorHex: true, size: true },
+      }),
+    ]);
+    const colors = Array.from(new Map(variants.filter((item) => item.color).map((item) => [item.color!, item.colorHex])).entries())
+      .map(([name, hex]) => ({ name, hex }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const sizes = Array.from(new Set(variants.map((item) => item.size).filter((value): value is string => Boolean(value))));
+    return { categories, collections, colors, sizes };
+  },
+  "catalog-filters",
+  CATALOG_CACHE_TAG,
+);
 
 export const getCollection = cache(async (slug: string) =>
   prisma.productCollection.findFirst({ where: { slug, isActive: true } }),
@@ -167,15 +180,25 @@ export const getProduct = cache(async (slug: string) =>
   }),
 );
 
-export async function getHomeCatalog() {
-  const [products, collections] = await Promise.all([
-    prisma.product.findMany({
-      where: { status: "ACTIVE", isFeatured: true },
-      include: { category: { select: { name: true } }, images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } },
-      orderBy: { publishedAt: "desc" },
-      take: 4,
-    }),
-    prisma.productCollection.findMany({ where: { isActive: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], take: 24 }),
-  ]);
-  return { products: products.map(mapProduct), collections };
-}
+/** Featured products and collections for the homepage. Cached; refreshed when the catalog or stock changes. */
+export const getHomeCatalog = storefrontCache(
+  async () => {
+    const [products, collections] = await Promise.all([
+      prisma.product.findMany({
+        where: { status: "ACTIVE", isFeatured: true },
+        include: { category: { select: { name: true } }, images: { orderBy: [{ isPrimary: "desc" }, { displayOrder: "asc" }], take: 1 } },
+        orderBy: { publishedAt: "desc" },
+        take: 4,
+      }),
+      prisma.productCollection.findMany({
+        where: { isActive: true },
+        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+        take: 24,
+        select: { id: true, slug: true, name: true, description: true, image: true },
+      }),
+    ]);
+    return { products: products.map(mapProduct), collections };
+  },
+  "home-catalog",
+  CATALOG_CACHE_TAG,
+);

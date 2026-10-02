@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAdminActivity } from "@/lib/admin";
+import { refreshCatalogCache } from "@/lib/cache-tags";
 import { cancelUnpaidOrder, markOrderDelivered, markOrderProcessing, markOrderShipped, shipmentInputSchema } from "@/lib/admin-orders";
 import { sendOrderUpdateEmail } from "@/lib/order-notifications";
 import { requireAdminSession } from "@/lib/session";
@@ -18,7 +19,10 @@ async function record(orderId: string, action: string, mutate: () => Promise<unk
 
 export async function processOrderAction(orderId: string) { await record(orderId, "started order processing", () => markOrderProcessing(orderId)); }
 export async function deliverOrderAction(orderId: string) { await record(orderId, "marked order delivered", () => markOrderDelivered(orderId)); }
-export async function cancelOrderAction(orderId: string) { await record(orderId, "cancelled unpaid order", () => cancelUnpaidOrder(orderId)); }
+export async function cancelOrderAction(orderId: string) {
+  await record(orderId, "cancelled unpaid order", () => cancelUnpaidOrder(orderId));
+  refreshCatalogCache(); // the pieces went back into stock
+}
 export async function shipOrderAction(orderId: string, formData: FormData) {
   const input = shipmentInputSchema.parse(Object.fromEntries(formData));
   await record(orderId, "shipped order", () => markOrderShipped(orderId, input));

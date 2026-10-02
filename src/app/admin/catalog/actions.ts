@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { categoryInputSchema, collectionInputSchema, createAdminProduct, productImageInputSchema, productInputSchema, tagInputSchema, updateAdminProduct, variantInputSchema } from "@/lib/admin-catalog";
 import { logAdminActivity } from "@/lib/admin";
+import { refreshCatalogCache } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session";
 
@@ -22,7 +23,7 @@ export async function createProductAction(formData: FormData) {
   const selectedCollectionIds = formData.getAll("collectionIds").map(String).filter(Boolean);
   if (selectedCollectionIds.length) await prisma.product.update({ where: { id: product.id }, data: { collections: { connect: selectedCollectionIds.map((id) => ({ id })) } } });
   await logAdminActivity(session.user.id, { action: "created product", entityType: "product", entityId: product.id, details: { title: product.title } });
-  revalidatePath("/admin/catalog");
+  refreshCatalogCache(); revalidatePath("/admin/catalog");
   redirect(`/admin/catalog/${product.id}`);
 }
 
@@ -31,14 +32,14 @@ export async function updateProductAction(productId: string, formData: FormData)
   const data = productInputSchema.parse({ ...Object.fromEntries(formData), isFeatured: checked(formData, "isFeatured") });
   const product = await updateAdminProduct(productId, data);
   await logAdminActivity(session.user.id, { action: "updated product", entityType: "product", entityId: product.id, details: { title: product.title } });
-  revalidatePath("/admin/catalog"); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 
 export async function archiveProductAction(productId: string) {
   const session = await requireAdminSession();
   const product = await prisma.product.update({ where: { id: productId }, data: { status: "ARCHIVED", publishedAt: null } });
   await logAdminActivity(session.user.id, { action: "archived product", entityType: "product", entityId: product.id, details: { title: product.title } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop");
 }
 
 export async function deleteProductAction(productId: string) {
@@ -51,7 +52,7 @@ export async function deleteProductAction(productId: string) {
     await prisma.product.delete({ where: { id: productId } });
     await logAdminActivity(session.user.id, { action: "deleted product", entityType: "product", entityId: product.id, details: { title: product.title } });
   }
-  revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/");
   redirect("/admin/catalog");
 }
 
@@ -60,7 +61,7 @@ export async function createCategoryAction(formData: FormData) {
   const data = categoryInputSchema.parse(Object.fromEntries(formData));
   const category = await prisma.category.create({ data });
   await logAdminActivity(session.user.id, { action: "created category", entityType: "category", entityId: category.id, details: { name: category.name } });
-  revalidatePath("/admin/catalog");
+  refreshCatalogCache(); revalidatePath("/admin/catalog");
 }
 
 export async function toggleCategoryAction(categoryId: string) {
@@ -68,7 +69,7 @@ export async function toggleCategoryAction(categoryId: string) {
   const current = await prisma.category.findUniqueOrThrow({ where: { id: categoryId } });
   const category = await prisma.category.update({ where: { id: categoryId }, data: { isActive: !current.isActive } });
   await logAdminActivity(session.user.id, { action: category.isActive ? "activated category" : "deactivated category", entityType: "category", entityId: category.id });
-  revalidatePath("/admin/catalog");
+  refreshCatalogCache(); revalidatePath("/admin/catalog");
 }
 
 export async function updateCategoryAction(categoryId: string, formData: FormData) {
@@ -78,7 +79,7 @@ export async function updateCategoryAction(categoryId: string, formData: FormDat
   if (!Number.isInteger(displayOrder) || displayOrder < 0) throw new Error("Display order must be a non-negative whole number.");
   const category = await prisma.category.update({ where: { id: categoryId }, data: { ...data, displayOrder, isActive: checked(formData, "isActive") } });
   await logAdminActivity(session.user.id, { action: "updated category", entityType: "category", entityId: category.id, details: { name: category.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop");
 }
 
 export async function deleteCategoryAction(categoryId: string) {
@@ -87,7 +88,7 @@ export async function deleteCategoryAction(categoryId: string) {
   if (category._count.products || category._count.children) throw new Error("Move its products and child categories before deleting this category.");
   await prisma.category.delete({ where: { id: categoryId } });
   await logAdminActivity(session.user.id, { action: "deleted category", entityType: "category", entityId: category.id, details: { name: category.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop");
 }
 
 export async function createTagAction(formData: FormData) {
@@ -95,7 +96,7 @@ export async function createTagAction(formData: FormData) {
   const data = tagInputSchema.parse(Object.fromEntries(formData));
   const tag = await prisma.productTag.create({ data });
   await logAdminActivity(session.user.id, { action: "created tag", entityType: "tag", entityId: tag.id, details: { name: tag.name } });
-  revalidatePath("/admin/catalog");
+  refreshCatalogCache(); revalidatePath("/admin/catalog");
 }
 
 export async function updateTagAction(tagId: string, formData: FormData) {
@@ -103,14 +104,14 @@ export async function updateTagAction(tagId: string, formData: FormData) {
   const data = tagInputSchema.parse(Object.fromEntries(formData));
   const tag = await prisma.productTag.update({ where: { id: tagId }, data });
   await logAdminActivity(session.user.id, { action: "updated tag", entityType: "tag", entityId: tag.id, details: { name: tag.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop");
 }
 
 export async function deleteTagAction(tagId: string) {
   const session = await requireAdminSession();
   const tag = await prisma.productTag.delete({ where: { id: tagId } });
   await logAdminActivity(session.user.id, { action: "deleted tag", entityType: "tag", entityId: tag.id, details: { name: tag.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop");
 }
 
 export async function createCollectionAction(formData: FormData) {
@@ -118,7 +119,7 @@ export async function createCollectionAction(formData: FormData) {
   const data = collectionInputSchema.parse(Object.fromEntries(formData));
   const collection = await prisma.productCollection.create({ data });
   await logAdminActivity(session.user.id, { action: "created collection", entityType: "collection", entityId: collection.id, details: { name: collection.name } });
-  revalidatePath("/admin/catalog");
+  refreshCatalogCache(); revalidatePath("/admin/catalog");
 }
 
 export async function updateCollectionAction(collectionId: string, formData: FormData) {
@@ -128,14 +129,14 @@ export async function updateCollectionAction(collectionId: string, formData: For
   if (!Number.isInteger(displayOrder) || displayOrder < 0) throw new Error("Display order must be a non-negative whole number.");
   const collection = await prisma.productCollection.update({ where: { id: collectionId }, data: { ...data, displayOrder, isActive: checked(formData, "isActive") } });
   await logAdminActivity(session.user.id, { action: "updated collection", entityType: "collection", entityId: collection.id, details: { name: collection.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/"); revalidatePath("/collections/[slug]", "page");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/"); revalidatePath("/collections/[slug]", "page");
 }
 
 export async function deleteCollectionAction(collectionId: string) {
   const session = await requireAdminSession();
   const collection = await prisma.productCollection.delete({ where: { id: collectionId } });
   await logAdminActivity(session.user.id, { action: "deleted collection", entityType: "collection", entityId: collection.id, details: { name: collection.name } });
-  revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/");
+  refreshCatalogCache(); revalidatePath("/admin/catalog"); revalidatePath("/shop"); revalidatePath("/");
 }
 
 export async function updateProductCollectionsAction(productId: string, formData: FormData) {
@@ -145,7 +146,7 @@ export async function updateProductCollectionsAction(productId: string, formData
   if (validCount !== collectionIds.length) throw new Error("One or more collections are invalid.");
   await prisma.product.update({ where: { id: productId }, data: { collections: { set: collectionIds.map((id) => ({ id })) } } });
   await logAdminActivity(session.user.id, { action: "updated product collections", entityType: "product", entityId: productId, details: { collectionIds } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/collections/[slug]", "page");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/collections/[slug]", "page");
 }
 
 export async function addVariantAction(productId: string, formData: FormData) {
@@ -153,7 +154,7 @@ export async function addVariantAction(productId: string, formData: FormData) {
   const data = variantInputSchema.parse(Object.fromEntries(formData));
   const variant = await prisma.productVariant.create({ data: { ...data, colorHex: data.colorHex || null, productId } });
   await logAdminActivity(session.user.id, { action: "created variant", entityType: "variant", entityId: variant.id, details: { productId, sku: variant.sku } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 
 export async function updateVariantStockAction(productId: string, variantId: string, formData: FormData) {
@@ -162,7 +163,7 @@ export async function updateVariantStockAction(productId: string, variantId: str
   if (!Number.isInteger(stockQuantity) || stockQuantity < 0) throw new Error("Stock must be a non-negative whole number.");
   const variant = await prisma.productVariant.update({ where: { id: variantId, productId }, data: { stockQuantity } });
   await logAdminActivity(session.user.id, { action: "updated inventory", entityType: "variant", entityId: variant.id, details: { stockQuantity } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 
 export async function updateVariantAction(productId: string, variantId: string, formData: FormData) {
@@ -170,7 +171,7 @@ export async function updateVariantAction(productId: string, variantId: string, 
   const data = variantInputSchema.parse(Object.fromEntries(formData));
   const variant = await prisma.productVariant.update({ where: { id: variantId, productId }, data: { ...data, colorHex: data.colorHex || null } });
   await logAdminActivity(session.user.id, { action: "updated variant", entityType: "variant", entityId: variant.id, details: { productId, sku: variant.sku } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
 }
 
 export async function deleteVariantAction(productId: string, variantId: string) {
@@ -179,7 +180,7 @@ export async function deleteVariantAction(productId: string, variantId: string) 
   if (variant._count.orderItems) throw new Error("A variant used in an order cannot be deleted. Set its stock to zero instead.");
   await prisma.productVariant.delete({ where: { id: variantId, productId } });
   await logAdminActivity(session.user.id, { action: "deleted variant", entityType: "variant", entityId: variant.id, details: { productId, sku: variant.sku } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 
 export async function addProductImageAction(productId: string, formData: FormData) {
@@ -192,7 +193,7 @@ export async function addProductImageAction(productId: string, formData: FormDat
   const images = urls.map((url) => productImageInputSchema.parse({ url, altText }));
   const created = await prisma.$transaction(images.map((image, index) => prisma.productImage.create({ data: { productId, ...image, displayOrder: count + index, isPrimary: count === 0 && index === 0 } })));
   await logAdminActivity(session.user.id, { action: "added product images", entityType: "product-image", entityId: created[0]?.id, details: { productId, count: created.length } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }
 
 export async function updateProductImageAction(productId: string, imageId: string, formData: FormData) {
@@ -208,7 +209,7 @@ export async function updateProductImageAction(productId: string, imageId: strin
     return tx.productImage.update({ where: { id: imageId, productId }, data: { altText: altText || null, displayOrder, ...(makePrimary ? { isPrimary: true } : {}) } });
   });
   await logAdminActivity(session.user.id, { action: "updated product image", entityType: "product-image", entityId: image.id, details: { productId, displayOrder, isPrimary: image.isPrimary } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
 }
 
 export async function deleteProductImageAction(productId: string, imageId: string) {
@@ -222,7 +223,7 @@ export async function deleteProductImageAction(productId: string, imageId: strin
     return image;
   });
   await logAdminActivity(session.user.id, { action: "deleted product image", entityType: "product-image", entityId: deleted.id, details: { productId } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop"); revalidatePath("/products/[slug]", "page");
 }
 
 export async function attachTagAction(productId: string, formData: FormData) {
@@ -230,12 +231,12 @@ export async function attachTagAction(productId: string, formData: FormData) {
   const tagId = String(formData.get("tagId") ?? "");
   await prisma.product.update({ where: { id: productId }, data: { tags: { connect: { id: tagId } } } });
   await logAdminActivity(session.user.id, { action: "tagged product", entityType: "product", entityId: productId, details: { tagId } });
-  revalidatePath(`/admin/catalog/${productId}`);
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`);
 }
 
 export async function detachTagAction(productId: string, tagId: string) {
   const session = await requireAdminSession();
   await prisma.product.update({ where: { id: productId }, data: { tags: { disconnect: { id: tagId } } } });
   await logAdminActivity(session.user.id, { action: "removed product tag", entityType: "product", entityId: productId, details: { tagId } });
-  revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
+  refreshCatalogCache(); revalidatePath(`/admin/catalog/${productId}`); revalidatePath("/shop");
 }

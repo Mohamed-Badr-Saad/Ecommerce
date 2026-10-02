@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { HOMEPAGE_CONTENT_CACHE_TAG, storefrontCache } from "./cache-tags";
 import { prisma } from "./prisma";
 import { storefrontImageUrlSchema } from "./media";
 
@@ -57,26 +58,41 @@ export async function getAdminContent() {
   return { media, banners, policies, feedback };
 }
 
-export async function getActiveBanners() {
-  const now = new Date();
-  return prisma.banner.findMany({
-    where: {
-      isActive: true,
-      AND: [
-        { OR: [{ startDate: null }, { startDate: { lte: now } }] },
-        { OR: [{ endDate: null }, { endDate: { gt: now } }] },
-      ],
-    },
-    orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
-    select: { id: true, title: true, subtitle: true, image: true, ctaText: true, ctaLink: true },
-  });
+/** Active banners (with their schedule), cached; refreshed whenever a banner is saved. */
+const getCachedBanners = storefrontCache(
+  async () =>
+    prisma.banner.findMany({
+      where: { isActive: true },
+      orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
+      select: { id: true, title: true, subtitle: true, image: true, ctaText: true, ctaLink: true, startDate: true, endDate: true },
+    }),
+  "active-banners",
+  HOMEPAGE_CONTENT_CACHE_TAG,
+);
+
+/** Banners to show right now. The schedule is checked on every visit, so timed banners start and stop on time. */
+export async function getActiveBanners(now = new Date()) {
+  const banners = await getCachedBanners();
+  // Cached values come back with dates as text, so compare as timestamps.
+  const time = (value: Date | string | null) => (value === null ? null : new Date(value).getTime());
+  return banners
+    .filter((banner) => {
+      const start = time(banner.startDate);
+      const end = time(banner.endDate);
+      return (start === null || start <= now.getTime()) && (end === null || end > now.getTime());
+    })
+    .map(({ id, title, subtitle, image, ctaText, ctaLink }) => ({ id, title, subtitle, image, ctaText, ctaLink }));
 }
 
-export async function getActiveCustomerFeedback() {
-  return prisma.customerFeedback.findMany({
-    where: { isActive: true },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
-    take: 24,
-    select: { id: true, image: true, imageWidth: true, imageHeight: true, altText: true, customerName: true, caption: true },
-  });
-}
+/** Customer screenshots for the homepage, cached; refreshed whenever feedback is saved. */
+export const getActiveCustomerFeedback = storefrontCache(
+  async () =>
+    prisma.customerFeedback.findMany({
+      where: { isActive: true },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      take: 24,
+      select: { id: true, image: true, imageWidth: true, imageHeight: true, altText: true, customerName: true, caption: true },
+    }),
+  "active-customer-feedback",
+  HOMEPAGE_CONTENT_CACHE_TAG,
+);

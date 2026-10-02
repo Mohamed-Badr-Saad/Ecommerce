@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { refreshCatalogCache } from "@/lib/cache-tags";
 import { checkoutSchema } from "@/lib/commerce";
 import { saveFirstAddressForUser } from "@/lib/customer";
 import { sendOrderUpdateEmail } from "@/lib/order-notifications";
@@ -26,6 +27,9 @@ export async function placeOrderAction(_state: CheckoutState, formData: FormData
     console.error("[checkout] COD order failed", { name: error instanceof Error ? error.name : "UnknownError", code });
     return { error: error instanceof CheckoutError ? error.message : "We could not place your order. Please try again." };
   }
+
+  // Stock just changed: refresh the cached homepage products ("sold out" badges).
+  refreshCatalogCache();
 
   // Optional: keep the delivery address for next time. A failure here never affects the order.
   let addressSaved = false;
