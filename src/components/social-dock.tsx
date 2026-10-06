@@ -1,20 +1,12 @@
 "use client";
 
-import { Heart, X } from "lucide-react";
+import {  X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 
 import type { SocialKey, SocialLinks } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
-import { FacebookIcon, InstagramIcon, TikTokIcon, WhatsAppIcon, XIcon } from "./social-icons";
-
-const ORDER: { key: SocialKey; label: string; Icon: typeof InstagramIcon }[] = [
-  { key: "instagram", label: "Instagram", Icon: InstagramIcon },
-  { key: "tiktok", label: "TikTok", Icon: TikTokIcon },
-  { key: "facebook", label: "Facebook", Icon: FacebookIcon },
-  { key: "x", label: "X (Twitter)", Icon: XIcon },
-  { key: "whatsapp", label: "WhatsApp", Icon: WhatsAppIcon },
-];
+import { InstagramIcon, SOCIAL_ICONS } from "./social-icons";
 
 /**
  * The store's social accounts, pinned to the bottom-right corner of every storefront page.
@@ -26,7 +18,7 @@ export function SocialDock({ links }: { links: SocialLinks }) {
   const [open, setOpen] = useState(false);
   const listId = useId();
 
-  const items = ORDER.filter(({ key }) => links[key]);
+  const items = SOCIAL_ICONS.filter(({ key }) => links[key]);
   if (!items.length || pathname.startsWith("/admin")) return null;
 
   return (
@@ -60,7 +52,7 @@ export function SocialDock({ links }: { links: SocialLinks }) {
         aria-label={open ? "Hide social media links" : "Follow Talié on social media"}
         className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:hidden"
       >
-        {open ? <X className="size-5" aria-hidden="true" /> : <Heart className="size-5" aria-hidden="true" />}
+        {open ? <X className="size-5" aria-hidden="true" /> : <InstagramIcon className="size-5" aria-hidden="true" />}
       </button>
     </nav>
   );

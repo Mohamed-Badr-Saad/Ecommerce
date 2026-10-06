@@ -1,5 +1,7 @@
 import type { SVGProps } from "react";
 
+import type { SocialKey } from "@/lib/social-links";
+
 /** Simple outline icons for the social accounts, drawn to match the site's other (lucide) icons. */
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -56,3 +58,12 @@ export function WhatsAppIcon(props: IconProps) {
     </Base>
   );
 }
+
+/** The order and names used wherever the store's social accounts are listed (corner buttons and footer). */
+export const SOCIAL_ICONS: { key: SocialKey; label: string; Icon: typeof InstagramIcon }[] = [
+  { key: "instagram", label: "Instagram", Icon: InstagramIcon },
+  { key: "tiktok", label: "TikTok", Icon: TikTokIcon },
+  { key: "facebook", label: "Facebook", Icon: FacebookIcon },
+  { key: "x", label: "X (Twitter)", Icon: XIcon },
+  { key: "whatsapp", label: "WhatsApp", Icon: WhatsAppIcon },
+];

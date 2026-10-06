@@ -8,13 +8,19 @@ export const CATALOG_PAGE_SIZE = 8;
 
 export type CatalogSearchParams = Record<string, string | string[] | undefined>;
 
+/** Filters that accept several values at once (e.g. ?size=S&size=M). */
+export const CATALOG_FILTER_FIELDS = ["collection", "category", "size", "color", "availability"] as const;
+export type CatalogFilterField = (typeof CATALOG_FILTER_FIELDS)[number];
+export type CatalogAvailability = "in-stock" | "sold-out";
+
 export type CatalogQuery = {
   q?: string;
-  collection?: string;
-  category?: string;
-  color?: string;
-  size?: string;
-  availability?: "in-stock" | "sold-out";
+  /** Within one filter the values are alternatives (any of them); different filters must all match. */
+  collection: string[];
+  category: string[];
+  color: string[];
+  size: string[];
+  availability: CatalogAvailability[];
   sort: "newest" | "price-asc" | "price-desc" | "name";
   page: number;
 };
@@ -35,18 +41,27 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const MAX_VALUES_PER_FILTER = 30;
+
+/** All values of a repeated search param (?size=S&size=M), trimmed, de-duplicated and capped. */
+function many(value: string | string[] | undefined) {
+  const values = (Array.isArray(value) ? value : value === undefined ? [] : [value])
+    .map((item) => item.trim().slice(0, 80))
+    .filter(Boolean);
+  return Array.from(new Set(values)).slice(0, MAX_VALUES_PER_FILTER);
+}
+
 export function parseCatalogQuery(params: CatalogSearchParams): CatalogQuery {
   const rawSort = first(params.sort);
   const rawPage = Number.parseInt(first(params.page) ?? "1", 10);
-  const availability = first(params.availability);
 
   return {
     q: first(params.q)?.trim().slice(0, 80) || undefined,
-    collection: first(params.collection)?.trim() || undefined,
-    category: first(params.category)?.trim() || undefined,
-    color: first(params.color)?.trim() || undefined,
-    size: first(params.size)?.trim() || undefined,
-    availability: availability === "sold-out" ? "sold-out" : availability === "in-stock" ? "in-stock" : undefined,
+    collection: many(params.collection),
+    category: many(params.category),
+    color: many(params.color),
+    size: many(params.size),
+    availability: many(params.availability).filter((value): value is CatalogAvailability => value === "in-stock" || value === "sold-out"),
     sort: rawSort === "price-asc" || rawSort === "price-desc" || rawSort === "name" ? rawSort : "newest",
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
   };
@@ -57,16 +72,19 @@ export function catalogQueryString(query: CatalogQuery, overrides: Partial<Catal
   const params = new URLSearchParams();
 
   if (next.q) params.set("q", next.q);
-  if (next.collection) params.set("collection", next.collection);
-  if (next.category) params.set("category", next.category);
-  if (next.color) params.set("color", next.color);
-  if (next.size) params.set("size", next.size);
-  if (next.availability) params.set("availability", next.availability);
+  for (const field of CATALOG_FILTER_FIELDS) {
+    for (const value of next[field] as string[]) params.append(field, value);
+  }
   if (next.sort !== "newest") params.set("sort", next.sort);
   if (next.page > 1) params.set("page", String(next.page));
 
   const value = params.toString();
   return value ? `?${value}` : "";
+}
+
+/** How many filter values are applied (search and sort not included). */
+export function countActiveFilters(query: CatalogQuery) {
+  return CATALOG_FILTER_FIELDS.reduce((total, field) => total + query[field].length, 0);
 }
 
 function productWhere(query: CatalogQuery, collectionSlug?: string): Prisma.ProductWhereInput {
@@ -80,12 +98,14 @@ function productWhere(query: CatalogQuery, collectionSlug?: string): Prisma.Prod
           ],
         }
       : {}),
-    ...(query.category ? { category: { slug: query.category } } : {}),
-    ...(!collectionSlug && query.collection ? { collections: { some: { slug: query.collection, isActive: true } } } : {}),
-    ...(query.color ? { variants: { some: { color: query.color } } } : {}),
-    ...(query.size ? { variants: { some: { size: query.size } } } : {}),
-    ...(query.availability === "in-stock" ? { stockQuantity: { gt: 0 } } : {}),
-    ...(query.availability === "sold-out" ? { stockQuantity: { lte: 0 } } : {}),
+    ...(query.category.length ? { category: { slug: { in: query.category } } } : {}),
+    ...(!collectionSlug && query.collection.length ? { collections: { some: { slug: { in: query.collection }, isActive: true } } } : {}),
+    // Colour and size are checked on the same option, so "Burgundy" + "M" finds a burgundy piece in size M.
+    ...(query.color.length || query.size.length
+      ? { variants: { some: { ...(query.color.length ? { color: { in: query.color } } : {}), ...(query.size.length ? { size: { in: query.size } } : {}) } } }
+      : {}),
+    // Ticking both "In stock" and "Sold out" is the same as no availability filter.
+    ...(query.availability.length === 1 ? { stockQuantity: query.availability[0] === "in-stock" ? { gt: 0 } : { lte: 0 } } : {}),
     ...(collectionSlug ? { collections: { some: { slug: collectionSlug, isActive: true } } } : {}),
   };
 }
