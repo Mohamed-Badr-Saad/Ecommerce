@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# one-off clean-up script (deletes production data)
+scripts/reset-store-content.ts
