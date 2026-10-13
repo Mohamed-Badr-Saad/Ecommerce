@@ -4,7 +4,7 @@ import {  X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 
-import type { SocialKey, SocialLinks } from "@/lib/social-links";
+import type { SocialLinks } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
 import { InstagramIcon, SOCIAL_ICONS } from "./social-icons";
 

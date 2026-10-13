@@ -86,5 +86,8 @@ export async function createAdminProduct(input: z.input<typeof productInputSchem
 
 export async function updateAdminProduct(productId: string, input: z.input<typeof productInputSchema>) {
   const data = productInputSchema.parse(input);
-  return prisma.product.update({ where: { id: productId }, data: { ...data, publishedAt: data.status === "ACTIVE" ? new Date() : null, isSale: Boolean(data.compareAtPrice && data.compareAtPrice > data.price) } });
+  // Keep the original publish date while a product stays active, so ordinary edits don't move it to the top of "Newest".
+  const current = await prisma.product.findUniqueOrThrow({ where: { id: productId }, select: { status: true, publishedAt: true } });
+  const publishedAt = data.status !== "ACTIVE" ? null : current.status === "ACTIVE" && current.publishedAt ? current.publishedAt : new Date();
+  return prisma.product.update({ where: { id: productId }, data: { ...data, publishedAt, isSale: Boolean(data.compareAtPrice && data.compareAtPrice > data.price) } });
 }

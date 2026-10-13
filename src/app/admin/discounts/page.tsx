@@ -67,7 +67,7 @@ export default async function AdminDiscountsPage() {
               </span>
             </summary>
             <div className="border-t p-4">
-              <form action={updateDiscountCodeAction.bind(null, discount.id)} className="grid gap-3 sm:grid-cols-2">
+              <form key={discount.updatedAt.toISOString()} action={updateDiscountCodeAction.bind(null, discount.id)} className="grid gap-3 sm:grid-cols-2">
                 <DiscountFields discount={discount} idPrefix={discount.id} />
                 <Button className="rounded-none sm:col-span-2">Save code</Button>
               </form>
